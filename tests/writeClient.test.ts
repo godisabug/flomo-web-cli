@@ -26,6 +26,12 @@ describe("formatCreateContent", () => {
       "<p>Hello &lt;world&gt;</p><p>Second</p><p>#work</p>"
     );
   });
+
+  it("escapes special characters, deduplicates tags, and collapses blank lines", () => {
+    expect(formatCreateContent('First & "quote"\n\nSecond\'s <line>', ["#work", "work", "life"])).toBe(
+      "<p>First &amp; &quot;quote&quot;</p><p>Second&#39;s &lt;line&gt;</p><p>#work #life</p>"
+    );
+  });
 });
 
 describe("formatFlomoLocalDateTime", () => {
@@ -53,5 +59,70 @@ describe("BearerFlomoWriteClient", () => {
 
     const client = new BearerFlomoWriteClient(config, httpClient);
     await expect(client.create({ content: "Hello" })).resolves.toMatchObject({ slug: "created", content: "Hello" });
+  });
+
+  it("sends the create payload contract", async () => {
+    const httpClient = {
+      requestJson: async (endpoint: string, init?: RequestInit) => {
+        expect(endpoint).toBe("/api/v1/memo");
+        expect(init?.method).toBe("PUT");
+        expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
+
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        expect(body).toMatchObject({
+          content: "<p>Hello</p><p>#work</p>",
+          source: "web",
+          memo_from: "human",
+          file_ids: [],
+          tz: "Asia/Shanghai"
+        });
+        expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+        return {
+          memo: {
+            slug: "created",
+            content: "<p>Hello</p>",
+            created_at: "2026-05-03T00:00:00.000Z",
+            updated_at: "2026-05-03T00:00:00.000Z"
+          }
+        };
+      }
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+
+    const client = new BearerFlomoWriteClient(config, httpClient);
+    await expect(client.create({ content: "Hello", tags: ["work"] })).resolves.toMatchObject({ slug: "created" });
+  });
+
+  it("extracts a nested memo instead of an envelope with an id", async () => {
+    const httpClient = {
+      requestJson: async () => ({
+        data: {
+          id: "envelope",
+          memo: {
+            slug: "created",
+            content: "<p>Hello</p>",
+            created_at: "2026-05-03T00:00:00.000Z",
+            updated_at: "2026-05-03T00:00:00.000Z"
+          }
+        }
+      })
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+
+    const client = new BearerFlomoWriteClient(config, httpClient);
+    await expect(client.create({ content: "Hello" })).resolves.toMatchObject({ slug: "created", content: "Hello" });
+  });
+
+  it("rejects blank content", async () => {
+    const httpClient = {
+      requestJson: async () => {
+        throw new Error("request should not be sent");
+      }
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+
+    const client = new BearerFlomoWriteClient(config, httpClient);
+    await expect(client.create({ content: " \n\t " })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "memo content 不能为空。"
+    });
   });
 });

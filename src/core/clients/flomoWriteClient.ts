@@ -97,22 +97,25 @@ function tryExtractCreatedMemo(raw: unknown): unknown | undefined {
     return undefined;
   }
 
-  if (looksLikeMemo(raw)) {
-    return raw;
-  }
-
   for (const key of ["memo", "data", "item", "result"]) {
     const candidate = raw[key];
-    if (isRecord(candidate) && looksLikeMemo(candidate)) {
-      return candidate;
+    const nested = tryExtractCreatedMemo(candidate);
+    if (nested) {
+      return nested;
     }
   }
 
-  return undefined;
+  return looksLikeMemo(raw) ? raw : undefined;
 }
 
 function looksLikeMemo(raw: Record<string, unknown>): boolean {
-  return ["slug", "memo_slug", "memo_id", "id"].some((key) => raw[key] !== undefined);
+  return hasAnyKey(raw, ["slug", "memo_slug", "memo_id", "id"]) && hasAnyKey(raw, CONTENT_SOURCE_KEYS);
+}
+
+const CONTENT_SOURCE_KEYS = ["content", "html", "text", "plain_text", "plainText", "rich_text", "source_content", "summary"];
+
+function hasAnyKey(raw: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((key) => raw[key] !== undefined);
 }
 
 function escapeHtml(value: string): string {
