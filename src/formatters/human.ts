@@ -3,6 +3,11 @@ import type { Memo } from "../core/models/memo.js";
 import type { SyncNotesResult } from "../core/types/flomo.js";
 import { summarize } from "../core/utils/text.js";
 
+export interface MaskedConfigEntry {
+  key: string;
+  maskedValue: string;
+}
+
 export function formatMemoList(items: Memo[]): string {
   if (items.length === 0) {
     return "No memos found.";
@@ -29,21 +34,22 @@ export function formatMemoDetail(memo: Memo | null): string {
 
 export function formatSyncResult(result: SyncNotesResult | NoteCache): string {
   const synced = "synced" in result ? result.synced : result.items.length;
+  const cached = "totalCached" in result ? result.totalCached : result.items.length;
   const pages = "pages" in result ? `\nPages: ${result.pages}` : "";
   const completeMessage = result.complete ? "Complete: yes" : "Complete: no, more memos may remain beyond the configured page limit.";
-  return [`Synced: ${synced}`, `Cached: ${result.items.length}`, `Synced at: ${result.syncedAt}`, completeMessage + pages].join("\n");
+  return [`Synced: ${synced}`, `Cached: ${cached}`, `Synced at: ${result.syncedAt}`, completeMessage + pages].join("\n");
 }
 
 export function formatCreatedMemo(memo: Memo): string {
   return [`Created: ${memo.slug}`, `URL: ${memo.url}`, `Summary: ${summarize(memo.content)}`].join("\n");
 }
 
-export function formatConfigEntries(entries: Array<{ key: string; value: string }>): string {
+export function formatMaskedConfigEntries(entries: MaskedConfigEntry[]): string {
   if (entries.length === 0) {
     return "No user config values set.";
   }
 
-  return entries.map((entry) => `${entry.key}=${entry.value}`).join("\n");
+  return entries.map((entry) => `${entry.key}=${entry.maskedValue}`).join("\n");
 }
 
 function formatMemoSummary(memo: Memo): string {
