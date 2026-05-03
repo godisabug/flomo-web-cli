@@ -1,6 +1,6 @@
 import type { Memo } from "../models/memo.js";
 import { FlomoParseError } from "../errors.js";
-import { stripHtml } from "../utils/text.js";
+import { htmlToText, normalizeWhitespace } from "../utils/text.js";
 import { extractInlineTags, normalizeTags } from "./tagParser.js";
 
 export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
@@ -13,23 +13,34 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
     throw new FlomoParseError("memo 缺少 slug。");
   }
 
-  const html = pickString(raw, ["content", "html"]);
-  const plainText = pickString(raw, ["text", "plain_text", "plainText"]);
-  const content = plainText ?? (html ? stripHtml(html) : "");
+  const html = pickString(raw, ["html", "content", "rich_text", "source_content"]);
+  const plainText = pickString(raw, ["plain_text", "text", "summary", "plainText"]);
+  const contentSource = plainText ?? html;
+  if (!contentSource) {
+    throw new FlomoParseError("memo 缺少 content/html/text 字段。");
+  }
+
+  const content = looksLikeHtml(contentSource) ? htmlToText(contentSource) : normalizeWhitespace(contentSource);
   const createdAt = normalizeDate(raw.created_at ?? raw.createdAt ?? raw.created_time ?? raw.created) ?? "";
   const updatedAt = normalizeDate(raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified) ?? createdAt;
-  const rawTags = pickStringArray(raw, ["tags", "tag_list"]);
-  const tags = normalizeTags(rawTags.length > 0 ? rawTags : extractInlineTags(content));
+  const apiTags = normalizeTags([raw.tags, raw.tag_list, raw.tag_names, raw.labels]);
+  const inlineTags = extractInlineTags(content);
+  const tags = normalizeTags([...apiTags, ...inlineTags]);
+  const url = pickString(raw, ["url", "link", "share_url"]) ?? buildMemoUrl(webBaseUrl, slug);
 
   return {
     slug,
     content,
-    ...(html ? { html } : {}),
+    ...(html && looksLikeHtml(html) ? { html } : {}),
     tags,
-    url: `${webBaseUrl.replace(/\/+$/, "")}/memo/${encodeURIComponent(slug)}`,
+    url,
     createdAt,
     updatedAt
   };
+}
+
+function buildMemoUrl(baseUrl: string, slug: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/mine/?memo_id=${encodeURIComponent(slug)}`;
 }
 
 function pickString(record: Record<string, unknown>, keys: string[]): string | undefined {
@@ -46,17 +57,6 @@ function pickString(record: Record<string, unknown>, keys: string[]): string | u
   return undefined;
 }
 
-function pickStringArray(record: Record<string, unknown>, keys: string[]): string[] {
-  for (const key of keys) {
-    const value = record[key];
-    if (Array.isArray(value)) {
-      return value.filter((item): item is string => typeof item === "string");
-    }
-  }
-
-  return [];
-}
-
 function normalizeDate(value: unknown): string | undefined {
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
@@ -69,6 +69,10 @@ function normalizeDate(value: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function looksLikeHtml(value: string): boolean {
+  return /<\/?[a-z][\s\S]*>/i.test(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
