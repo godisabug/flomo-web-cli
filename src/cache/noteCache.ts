@@ -1,4 +1,6 @@
-import { chmod, readFile, writeFile } from "node:fs/promises";
+import { chmod, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { CliError } from "../core/errors.js";
 import type { Memo } from "../core/models/memo.js";
@@ -82,10 +84,23 @@ export async function writeNoteCache(filePath: string, input: WriteNoteCacheInpu
     version: NOTE_CACHE_VERSION,
     ...input
   });
+  const tempFilePath = getTempCachePath(filePath);
 
-  await writeFile(filePath, `${JSON.stringify(cache, null, 2)}\n`, { mode: 0o600 });
-  await hardenFileMode(filePath);
+  try {
+    await writeFile(tempFilePath, `${JSON.stringify(cache, null, 2)}\n`, { mode: 0o600 });
+    await hardenFileMode(tempFilePath);
+    await rename(tempFilePath, filePath);
+    await hardenFileMode(filePath);
+  } catch (error) {
+    await removeTempFile(tempFilePath);
+    throw error;
+  }
+
   return cache;
+}
+
+function getTempCachePath(filePath: string): string {
+  return join(dirname(filePath), `.${basename(filePath)}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -110,4 +125,12 @@ async function hardenFileMode(filePath: string): Promise<void> {
 
 function isIgnorableChmodError(error: unknown): boolean {
   return isNodeError(error) && (process.platform === "win32" || error.code === "ENOSYS" || error.code === "ENOTSUP" || error.code === "EOPNOTSUPP");
+}
+
+async function removeTempFile(filePath: string): Promise<void> {
+  try {
+    await rm(filePath, { force: true });
+  } catch {
+    return;
+  }
 }
