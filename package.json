@@ -30,7 +30,7 @@
     "verify": "npm run typecheck && npm run typecheck:test && npm test && npm run build"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "dependencies": {
     "commander": "^12.1.0",
