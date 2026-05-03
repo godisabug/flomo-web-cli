@@ -1,12 +1,14 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadEnvConfig } from "../src/config/env.js";
 import { maskConfigValue, readUserConfig, writeUserConfig } from "../src/config/userConfig.js";
 import { resolveConfig } from "../src/config/resolvedConfig.js";
+import { getUserConfigPath } from "../src/utils/filesystem.js";
 
 const tempDirs: string[] = [];
+const posixIt = process.platform === "win32" ? it.skip : it;
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
@@ -26,6 +28,27 @@ describe("env config", () => {
     expect(config.baseUrl).toBe("https://flomoapp.com");
     expect(config.webBaseUrl).toBe("https://v.flomoapp.com");
   });
+
+  it("treats blank url env values as absent", () => {
+    const resolved = resolveConfig({
+      user: {
+        baseUrl: "https://custom.example",
+        webBaseUrl: "https://custom-web.example"
+      },
+      env: loadEnvConfig({
+        FLOMO_BASE_URL: " ",
+        FLOMO_WEB_BASE_URL: ""
+      })
+    });
+
+    expect(resolved.baseUrl).toBe("https://custom.example");
+    expect(resolved.webBaseUrl).toBe("https://custom-web.example");
+  });
+
+  it("rejects invalid non-empty url env values", () => {
+    expect(() => loadEnvConfig({ FLOMO_BASE_URL: "not a url" })).toThrow();
+    expect(() => loadEnvConfig({ FLOMO_WEB_BASE_URL: "not a url" })).toThrow();
+  });
 });
 
 describe("user config", () => {
@@ -35,6 +58,16 @@ describe("user config", () => {
     await writeUserConfig(file, { authorization: "Bearer secret", timezone: "Asia/Shanghai" });
     await expect(readFile(file, "utf8")).resolves.toContain("Bearer secret");
     await expect(readUserConfig(file)).resolves.toEqual({ authorization: "Bearer secret", timezone: "Asia/Shanghai" });
+  });
+
+  posixIt("hardens permissions when rewriting existing config", async () => {
+    const dir = await tempDir();
+    const file = join(dir, "config.json");
+    await writeFile(file, "{}\n", { mode: 0o666 });
+
+    await writeUserConfig(file, { timezone: "Asia/Shanghai" });
+
+    expect((await stat(file)).mode & 0o777).toBe(0o600);
   });
 
   it("masks sensitive values", () => {
@@ -84,5 +117,13 @@ describe("resolved config", () => {
 
     expect(resolved.baseUrl).toBe("https://env.example");
     expect(resolved.webBaseUrl).toBe("https://env-web.example");
+  });
+});
+
+describe("filesystem paths", () => {
+  it("treats blank Windows config base paths as absent", () => {
+    expect(getUserConfigPath({ APPDATA: "", USERPROFILE: "C:\\Users\\Test" }, "win32")).toBe(
+      "C:\\Users\\Test\\AppData\\Roaming\\flomo-web-cli\\config.json"
+    );
   });
 });

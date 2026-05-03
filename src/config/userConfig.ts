@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, readFile, rm, writeFile } from "node:fs/promises";
 import { z } from "zod";
 import { CliError } from "../core/errors.js";
 import { ensureParentDirectory } from "../utils/filesystem.js";
@@ -67,6 +67,7 @@ export async function writeUserConfig(filePath: string, config: UserConfig): Pro
   await ensureParentDirectory(filePath);
   const parsed = UserConfigSchema.parse(config);
   await writeFile(filePath, `${JSON.stringify(parsed, null, 2)}\n`, { mode: 0o600 });
+  await hardenFileMode(filePath);
 }
 
 export async function unsetUserConfigFile(filePath: string): Promise<void> {
@@ -92,4 +93,20 @@ export function maskConfigValue(key: string, value: unknown): string {
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && "code" in error;
+}
+
+async function hardenFileMode(filePath: string): Promise<void> {
+  try {
+    await chmod(filePath, 0o600);
+  } catch (error) {
+    if (isIgnorableChmodError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+function isIgnorableChmodError(error: unknown): boolean {
+  return isNodeError(error) && (process.platform === "win32" || error.code === "ENOSYS" || error.code === "ENOTSUP" || error.code === "EOPNOTSUPP");
 }

@@ -27,8 +27,8 @@ const EnvSchema = z.object({
   FLOMO_AUTHORIZATION: z.string().optional(),
   FLOMO_COOKIE: z.string().optional(),
   FLOMO_USER_AGENT: z.string().optional(),
-  FLOMO_BASE_URL: z.string().url().optional(),
-  FLOMO_WEB_BASE_URL: z.string().url().optional(),
+  FLOMO_BASE_URL: z.string().optional(),
+  FLOMO_WEB_BASE_URL: z.string().optional(),
   FLOMO_TIMEZONE: z.string().optional(),
   LOG_LEVEL: z.string().optional(),
   FLOMO_READ_ENDPOINT: z.string().optional(),
@@ -39,6 +39,8 @@ const EnvSchema = z.object({
   FLOMO_WEB_PLATFORM: z.string().optional(),
   FLOMO_REQUEST_TIMEOUT_MS: z.string().optional()
 });
+
+const UrlSchema = z.string().url();
 
 export function loadDotenvFile(): void {
   loadDotenv();
@@ -51,8 +53,8 @@ export function loadEnvConfig(env: NodeJS.ProcessEnv = process.env): PartialRunt
     authorization: emptyToUndefined(parsed.FLOMO_AUTHORIZATION),
     cookie: emptyToUndefined(parsed.FLOMO_COOKIE),
     userAgent: emptyToUndefined(parsed.FLOMO_USER_AGENT),
-    baseUrl: trimTrailingSlash(parsed.FLOMO_BASE_URL),
-    webBaseUrl: trimTrailingSlash(parsed.FLOMO_WEB_BASE_URL),
+    baseUrl: parseOptionalUrl(parsed.FLOMO_BASE_URL),
+    webBaseUrl: parseOptionalUrl(parsed.FLOMO_WEB_BASE_URL),
     timezone: emptyToUndefined(parsed.FLOMO_TIMEZONE),
     logLevel: parseLogLevel(parsed.LOG_LEVEL),
     readEndpoint: emptyToUndefined(parsed.FLOMO_READ_ENDPOINT),
@@ -107,7 +109,7 @@ function emptyToUndefined(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function trimTrailingSlash(value: string | undefined): string | undefined {
+function parseOptionalUrl(value: string | undefined): string | undefined {
   const trimmed = emptyToUndefined(value);
-  return trimmed?.replace(/\/+$/, "");
+  return trimmed ? UrlSchema.parse(trimmed).replace(/\/+$/, "") : undefined;
 }
