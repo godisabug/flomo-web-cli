@@ -90,6 +90,36 @@ describe("FlomoHttpClient", () => {
     });
   });
 
+  it("does not expose unsafe HTTP-200 business error messages", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ code: -1, message: "authorization=Bearer secret" }), { status: 200 }));
+    const client = new FlomoHttpClient(config);
+
+    await expect(client.requestJson("/api/test")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "flomo 返回业务错误，请检查请求参数。"
+    });
+  });
+
+  it("preserves safe HTTP-200 business error messages", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ code: -1, message: "limit 参数无效" }), { status: 200 }));
+    const client = new FlomoHttpClient(config);
+
+    await expect(client.requestJson("/api/test")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "limit 参数无效"
+    });
+  });
+
+  it("maps sign-like HTTP-200 business messages to sign errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ code: 1001, message: "签名已过期" }), { status: 200 }));
+    const client = new FlomoHttpClient(config);
+
+    await expect(client.requestJson("/api/test")).rejects.toMatchObject({
+      code: "SIGN_INVALID",
+      message: "签名已过期"
+    });
+  });
+
   it("maps already-aborted input signals as cancellation instead of timeout", async () => {
     const controller = new AbortController();
     controller.abort();
@@ -117,6 +147,30 @@ describe("FlomoHttpClient", () => {
       code: "REQUEST_TIMEOUT"
     });
     await vi.advanceTimersByTimeAsync(10);
+
+    await assertion;
+  });
+
+  it("keeps input cancellation from becoming timeout after the timer fires", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      const signal = init?.signal;
+      return await new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener("abort", () => {
+          setTimeout(() => reject(new DOMException("Aborted", "AbortError")), 20);
+        }, { once: true });
+      });
+    });
+    const client = new FlomoHttpClient({ ...config, requestTimeoutMs: 10 });
+
+    const request = client.requestJson("/api/test", { signal: controller.signal });
+    const assertion = expect(request).rejects.toMatchObject({
+      code: "REMOTE_CHANGED",
+      message: "flomo 请求已取消。"
+    });
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(30);
 
     await assertion;
   });
