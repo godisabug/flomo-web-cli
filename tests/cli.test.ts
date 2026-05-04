@@ -58,6 +58,17 @@ describe("CLI runtime", () => {
     expect(output.stdout).toBe("");
   });
 
+  it("formats command errors with codes in human mode", async () => {
+    const output = createOutput();
+    await withTempConfigEnv(async () => {
+      const exitCode = await runCli(["node", "flomo-web", "config", "get", "unsupported"], output.io);
+      expect(exitCode).toBe(1);
+    });
+
+    expect(output.stderr).toBe("CONFIG_INVALID: Unsupported config key: unsupported\n");
+    expect(output.stdout).toBe("");
+  });
+
   it("prints subcommand help through the runtime", async () => {
     const output = createOutput();
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null) => {

@@ -75,7 +75,8 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
     writeResult(result, io);
     return result.exitCode;
   } catch (error) {
-    const stderr = isJsonMode(parsedCommand) ? formatJson({ ok: false, error: toPublicError(error) }) : toPublicError(error).message;
+    const publicError = toPublicError(error);
+    const stderr = isJsonMode(parsedCommand) ? formatJson({ ok: false, error: publicError }) : `${publicError.code}: ${publicError.message}`;
     io.stderr.write(withNewline(stderr));
     return 1;
   }
