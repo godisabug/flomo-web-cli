@@ -1,7 +1,13 @@
 .worktrees/
 node_modules/
+dist/
 coverage/
 .env
 .env.*
 !.env.example
 *.log
+*.tgz
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.DS_Store

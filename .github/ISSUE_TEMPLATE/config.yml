@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: https://github.com/godisabug/flomo-web-cli/security/advisories/new
+    about: Report credential leaks or security issues privately.

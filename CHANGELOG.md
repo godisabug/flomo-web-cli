@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- Restore source, tests, and TypeScript project files for GitHub development.
+- Add GitHub CI, contribution guide, security policy, and issue/PR templates.
+- Add npm repository metadata and a repeatable full verification script.
+
 ## 0.1.0
 
 - Add independent `flomo-web` CLI package.

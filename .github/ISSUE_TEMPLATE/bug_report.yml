@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem in flomo-web-cli.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include tokens, cookies, memo content, HAR files, or raw flomo responses.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest command sequence that reproduces the issue.
+      placeholder: |
+        1. Run `flomo-web ...`
+        2. See error `...`
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `node --version` and package version.
+      placeholder: node v20.19.0, flomo-web-cli 0.1.0
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Redact any credential or memo content.
+    validations:
+      required: true

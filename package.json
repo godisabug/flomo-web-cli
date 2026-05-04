@@ -10,6 +10,14 @@
     "typescript",
     "notes"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/godisabug/flomo-web-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/godisabug/flomo-web-cli/issues"
+  },
+  "homepage": "https://github.com/godisabug/flomo-web-cli#readme",
   "bin": {
     "flomo-web": "./dist/index.js"
   },
@@ -22,9 +30,15 @@
     "CHANGELOG.md"
   ],
   "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "smoke": "node dist/index.js --help",
-    "verify": "npm run smoke && npm audit --omit=dev --audit-level=moderate"
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
+    "prepare": "npm run build",
+    "verify": "npm run typecheck && npm run typecheck:test && npm test && npm run build && npm run smoke && npm audit --audit-level=moderate"
   },
   "engines": {
     "node": ">=20.19.0"
@@ -33,5 +47,11 @@
     "commander": "^12.1.0",
     "dotenv": "^16.4.7",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.5"
   }
 }
