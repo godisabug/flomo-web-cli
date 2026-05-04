@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeConfig } from "../src/config/env.js";
 import {
   BearerFlomoWriteClient,
@@ -19,6 +19,10 @@ const config: RuntimeConfig = {
   webPlatform: "Web",
   requestTimeoutMs: 30000
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("formatCreateContent", () => {
   it("escapes paragraphs and appends tags", () => {
@@ -62,6 +66,9 @@ describe("BearerFlomoWriteClient", () => {
   });
 
   it("sends the create payload contract", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-03T00:00:00.000Z"));
+
     const httpClient = {
       requestJson: async (endpoint: string, init?: RequestInit) => {
         expect(endpoint).toBe("/api/v1/memo");
@@ -74,9 +81,15 @@ describe("BearerFlomoWriteClient", () => {
           source: "web",
           memo_from: "human",
           file_ids: [],
-          tz: "Asia/Shanghai"
+          tz: "8:0",
+          api_key: "flomo_web",
+          app_version: "4.0",
+          platform: "web",
+          webp: "1",
+          created_at: "2026-05-03 08:00:00",
+          timestamp: 1_777_766_400,
+          sign: "7fdd0261e9e0b46b1be77a2d3de52897"
         });
-        expect(body.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 
         return {
           memo: {

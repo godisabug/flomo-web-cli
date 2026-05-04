@@ -35,6 +35,50 @@ describe("filterMemos", () => {
 });
 
 describe("BearerFlomoReadClient", () => {
+  it("signs the default flomo Web read endpoint", async () => {
+    let capturedEndpoint = "";
+    const httpClient = {
+      requestJson: async (endpoint: string) => {
+        capturedEndpoint = endpoint;
+        return { data: [] };
+      }
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+    const client = new BearerFlomoReadClient(config, httpClient);
+
+    await client.list();
+
+    const url = new URL(capturedEndpoint, config.baseUrl);
+    expect(url.pathname).toBe("/api/v1/memo/latest_updated_desc");
+    expect(url.searchParams.get("tz")).toBe("8:0");
+    expect(url.searchParams.get("api_key")).toBe("flomo_web");
+    expect(url.searchParams.get("app_version")).toBe("4.0");
+    expect(url.searchParams.get("platform")).toBe("web");
+    expect(url.searchParams.get("webp")).toBe("1");
+    expect(url.searchParams.get("timestamp")).toMatch(/^\d+$/);
+    expect(url.searchParams.get("sign")).toMatch(/^[a-f0-9]{32}$/);
+  });
+
+  it("signs sync pagination parameters", async () => {
+    let capturedEndpoint = "";
+    const httpClient = {
+      requestJson: async (endpoint: string) => {
+        capturedEndpoint = endpoint;
+        return { data: [] };
+      }
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+    const client = new BearerFlomoReadClient(config, httpClient);
+
+    await client.syncAll({ pageSize: 50, maxPages: 1 });
+
+    const url = new URL(capturedEndpoint, config.baseUrl);
+    expect(url.pathname).toBe("/api/v1/memo/updated/");
+    expect(url.searchParams.get("limit")).toBe("50");
+    expect(url.searchParams.get("latest_updated_at")).toBe("0");
+    expect(url.searchParams.get("latest_slug")).toBe("");
+    expect(url.searchParams.get("tz")).toBe("8:0");
+    expect(url.searchParams.get("sign")).toMatch(/^[a-f0-9]{32}$/);
+  });
+
   it("lists recent memos from common response shape", async () => {
     const httpClient = {
       requestJson: async () => ({

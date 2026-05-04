@@ -1,5 +1,87 @@
-export function appendQueryString(endpoint: string, params: Record<string, unknown>): string {
-  const query = new URLSearchParams();
+import { createHash } from "node:crypto";
+
+const FLOMO_WEB_SIGN_SECRET = "dbbc3dd73364b4084c3a69346e0ce2b2";
+const DEFAULT_API_KEY = "flomo_web";
+const DEFAULT_APP_VERSION = "4.0";
+const DEFAULT_PLATFORM = "web";
+
+type FlomoWebParamPrimitive = string | number | boolean;
+type FlomoWebParamValue = FlomoWebParamPrimitive | FlomoWebParamPrimitive[] | null | undefined;
+
+export type FlomoWebParams = Record<string, FlomoWebParamValue>;
+
+export interface FlomoWebQueryOptions {
+  now?: () => number;
+  apiKey?: string;
+  appVersion?: string;
+  platform?: string;
+  webp?: boolean;
+}
+
+export function buildFlomoWebQuery(params: FlomoWebParams = {}, options: FlomoWebQueryOptions = {}): FlomoWebParams {
+  const query: FlomoWebParams = {
+    ...params,
+    timestamp: options.now?.() ?? Math.floor(Date.now() / 1000),
+    api_key: options.apiKey ?? DEFAULT_API_KEY,
+    app_version: options.appVersion ?? DEFAULT_APP_VERSION,
+    platform: options.platform ?? DEFAULT_PLATFORM
+  };
+
+  if (options.webp ?? true) {
+    query.webp = "1";
+  }
+
+  return {
+    ...query,
+    sign: signFlomoWebParams(query)
+  };
+}
+
+export function appendQueryString(endpoint: string, params: FlomoWebParams): string {
+  const query = toUrlSearchParams(params).toString();
+  if (!query) {
+    return endpoint;
+  }
+
+  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${query}`;
+}
+
+export function getFlomoTz(timezone: string, date = new Date()): string {
+  const offsetMinutes = getTimeZoneOffsetMinutes(timezone, date);
+  const sign = offsetMinutes < 0 ? -1 : 1;
+  const absoluteOffset = Math.abs(offsetMinutes);
+  const hours = Math.trunc(absoluteOffset / 60) * sign;
+  const minutes = absoluteOffset % 60;
+  return `${hours}:${minutes}`;
+}
+
+function signFlomoWebParams(params: FlomoWebParams): string {
+  const sortedKeys = Object.keys(params).sort();
+  let payload = "";
+
+  for (const key of sortedKeys) {
+    const value = params[key];
+    if (!isSignableValue(value)) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const values = [...value].sort((left, right) => String(left).localeCompare(String(right)));
+      for (const item of values) {
+        payload += `${key}[]=${String(item)}&`;
+      }
+      continue;
+    }
+
+    payload += `${key}=${String(value)}&`;
+  }
+
+  payload = payload.substring(0, payload.length - 1);
+  return createHash("md5").update(`${payload}${FLOMO_WEB_SIGN_SECRET}`, "utf8").digest("hex");
+}
+
+function toUrlSearchParams(params: FlomoWebParams): URLSearchParams {
+  const searchParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) {
@@ -7,24 +89,43 @@ export function appendQueryString(endpoint: string, params: Record<string, unkno
     }
 
     if (Array.isArray(value)) {
-      query.set(key, JSON.stringify(value));
-    } else {
-      query.set(key, String(value));
+      for (const item of value) {
+        searchParams.append(`${key}[]`, String(item));
+      }
+      continue;
     }
+
+    searchParams.append(key, String(value));
   }
 
-  const queryString = query.toString();
-  if (!queryString) {
-    return endpoint;
-  }
-
-  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
+  return searchParams;
 }
 
-export function buildFlomoWebQuery(params: Record<string, unknown>): Record<string, unknown> {
-  return params;
+function isSignableValue(value: FlomoWebParamValue): value is FlomoWebParamPrimitive | FlomoWebParamPrimitive[] {
+  return Array.isArray(value) || Boolean(value) || value === 0;
 }
 
-export function getFlomoTz(timezone: string): string {
-  return timezone;
+function getTimeZoneOffsetMinutes(timezone: string, date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+
+  const values = new Map(parts.map((part) => [part.type, part.value]));
+  const utcMilliseconds = Date.UTC(
+    Number(values.get("year")),
+    Number(values.get("month")) - 1,
+    Number(values.get("day")),
+    Number(values.get("hour")),
+    Number(values.get("minute")),
+    Number(values.get("second"))
+  );
+
+  return Math.round((utcMilliseconds - date.getTime()) / 60_000);
 }

@@ -20,15 +20,14 @@ export class BearerFlomoWriteClient implements FlomoWriteClient {
       throw new FlomoRequestError("BAD_REQUEST", "memo content 不能为空。");
     }
 
-    const tz = getFlomoTz(this.config.timezone);
-    const payload = {
+    const payload = buildFlomoWebQuery({
       content: formatCreateContent(input.content, input.tags),
       created_at: formatFlomoLocalDateTime(this.config.timezone),
       source: "web",
       memo_from: "human",
       file_ids: [],
-      ...buildFlomoWebQuery({ tz })
-    };
+      tz: getFlomoTz(this.config.timezone)
+    });
 
     const raw = await this.httpClient.requestJson<unknown>(this.config.writeEndpoint ?? DEFAULT_WRITE_ENDPOINT, {
       method: "PUT",
