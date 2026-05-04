@@ -24,7 +24,7 @@ export const userConfigKeys = [
 export type UserConfigKey = (typeof userConfigKeys)[number];
 export type UserConfig = Partial<Pick<PartialRuntimeConfig, UserConfigKey>>;
 
-const UserConfigSchema = z.object({
+export const userConfigSchema = z.object({
   authorization: z.string().optional(),
   cookie: z.string().optional(),
   userAgent: z.string().optional(),
@@ -57,7 +57,7 @@ export async function readUserConfig(filePath: string): Promise<UserConfig> {
   }
 
   try {
-    return UserConfigSchema.parse(JSON.parse(text));
+    return userConfigSchema.parse(JSON.parse(text));
   } catch (error) {
     throw new CliError("CONFIG_INVALID", `用户配置文件无效：${filePath}`, { cause: error });
   }
@@ -65,7 +65,7 @@ export async function readUserConfig(filePath: string): Promise<UserConfig> {
 
 export async function writeUserConfig(filePath: string, config: UserConfig): Promise<void> {
   await ensureParentDirectory(filePath);
-  const parsed = UserConfigSchema.parse(config);
+  const parsed = userConfigSchema.parse(config);
   await writeFile(filePath, `${JSON.stringify(parsed, null, 2)}\n`, { mode: 0o600 });
   await hardenFileMode(filePath);
 }

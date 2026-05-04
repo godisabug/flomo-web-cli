@@ -1,5 +1,5 @@
 import { CliError } from "../core/errors.js";
-import { isUserConfigKey, maskConfigValue, readUserConfig, writeUserConfig, type UserConfig } from "../config/userConfig.js";
+import { isUserConfigKey, maskConfigValue, readUserConfig, userConfigSchema, writeUserConfig, type UserConfig } from "../config/userConfig.js";
 import { formatMaskedConfigEntries } from "../formatters/human.js";
 import { formatJson } from "../formatters/json.js";
 import type { CommandContext, CommandResult } from "./types.js";
@@ -68,12 +68,10 @@ function parseConfigValue(key: keyof UserConfig, value: string): UserConfig[keyo
 
 async function writeValidatedUserConfig(filePath: string, config: UserConfig): Promise<void> {
   try {
-    await writeUserConfig(filePath, config);
+    userConfigSchema.parse(config);
   } catch (error) {
-    if (error instanceof CliError) {
-      throw error;
-    }
-
     throw new CliError("CONFIG_INVALID", "用户配置值无效，请检查配置键和值。", { cause: error });
   }
+
+  await writeUserConfig(filePath, config);
 }
