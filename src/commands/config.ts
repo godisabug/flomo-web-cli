@@ -29,12 +29,12 @@ export async function runConfigCommand(context: CommandContext, options: ConfigC
   if (options.action === "unset") {
     const nextConfig = { ...config };
     delete nextConfig[key];
-    await writeUserConfig(context.configPath, nextConfig);
+    await writeValidatedUserConfig(context.configPath, nextConfig);
     return ok(options.json ? formatJson({ ok: true, key }) : `Unset ${key}.`);
   }
 
   const value = parseConfigValue(key, options.value);
-  await writeUserConfig(context.configPath, {
+  await writeValidatedUserConfig(context.configPath, {
     ...config,
     [key]: value
   });
@@ -64,4 +64,16 @@ function parseConfigValue(key: keyof UserConfig, value: string): UserConfig[keyo
   }
 
   return parsed;
+}
+
+async function writeValidatedUserConfig(filePath: string, config: UserConfig): Promise<void> {
+  try {
+    await writeUserConfig(filePath, config);
+  } catch (error) {
+    if (error instanceof CliError) {
+      throw error;
+    }
+
+    throw new CliError("CONFIG_INVALID", "用户配置值无效，请检查配置键和值。", { cause: error });
+  }
 }

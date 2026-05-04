@@ -8,6 +8,7 @@ import { runListCommand } from "../src/commands/list.js";
 import { runSearchCommand } from "../src/commands/search.js";
 import { runSyncCommand } from "../src/commands/sync.js";
 import { runConfigCommand } from "../src/commands/config.js";
+import { CliError } from "../src/core/errors.js";
 import type { CommandContext } from "../src/commands/types.js";
 import type { Memo } from "../src/core/models/memo.js";
 
@@ -44,6 +45,32 @@ async function createContext(): Promise<CommandContext> {
     },
     writeClient: {
       create: async ({ content }) => memo("created", content)
+    }
+  };
+}
+
+async function createTrackingContext(): Promise<CommandContext & { calls: { listLimit?: number; syncOptions?: { pageSize?: number; maxPages?: number }; createInput?: { content: string; tags?: string[] } } }> {
+  const context = await createContext();
+  const calls: { listLimit?: number; syncOptions?: { pageSize?: number; maxPages?: number }; createInput?: { content: string; tags?: string[] } } = {};
+  return {
+    ...context,
+    calls,
+    readClient: {
+      ...context.readClient,
+      list: async (limit?: number) => {
+        calls.listLimit = limit;
+        return context.readClient.list(limit);
+      },
+      syncAll: async (options = {}) => {
+        calls.syncOptions = options;
+        return context.readClient.syncAll(options);
+      }
+    },
+    writeClient: {
+      create: async (input) => {
+        calls.createInput = input;
+        return context.writeClient.create(input);
+      }
     }
   };
 }
@@ -86,5 +113,45 @@ describe("commands", () => {
     await runConfigCommand(context, { action: "set", key: "authorization", value: "Bearer abcdefghijklmnop" });
     const result = await runConfigCommand(context, { action: "list" });
     expect(result.stdout).toContain("Bearer abcd...mnop");
+  });
+
+  it("returns masked config JSON", async () => {
+    const context = await createContext();
+    await runConfigCommand(context, { action: "set", key: "authorization", value: "Bearer abcdefghijklmnop" });
+    const result = await runConfigCommand(context, { action: "get", key: "authorization", json: true });
+    expect(JSON.parse(result.stdout)).toEqual({
+      ok: true,
+      key: "authorization",
+      value: "Bearer abcd...mnop"
+    });
+  });
+
+  it("maps invalid config values to CONFIG_INVALID", async () => {
+    await expect(runConfigCommand(await createContext(), { action: "set", key: "baseUrl", value: "not-a-url" })).rejects.toMatchObject({
+      code: "CONFIG_INVALID"
+    } satisfies Partial<CliError>);
+  });
+
+  it("rejects empty create content", async () => {
+    await expect(runCreateCommand(await createContext(), { json: false, content: "   ", tags: [], stdin: false })).rejects.toMatchObject({
+      code: "BAD_REQUEST"
+    } satisfies Partial<CliError>);
+  });
+
+  it("surfaces missing all-notes cache", async () => {
+    await expect(runSearchCommand(await createContext(), { json: true, query: "alpha", limit: 20, scope: "all" })).rejects.toMatchObject({
+      code: "CACHE_MISSING"
+    } satisfies Partial<CliError>);
+  });
+
+  it("forwards command options to clients", async () => {
+    const context = await createTrackingContext();
+    await runListCommand(context, { json: false, limit: 7 });
+    await runSyncCommand(context, { json: false, pageSize: 11, maxPages: 3 });
+    await runCreateCommand(context, { json: false, content: "hello", tags: ["work"], stdin: false });
+
+    expect(context.calls.listLimit).toBe(7);
+    expect(context.calls.syncOptions).toEqual({ pageSize: 11, maxPages: 3 });
+    expect(context.calls.createInput).toEqual({ content: "hello", tags: ["work"] });
   });
 });
