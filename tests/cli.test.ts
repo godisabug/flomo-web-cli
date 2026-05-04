@@ -70,6 +70,22 @@ describe("CLI runtime", () => {
     expect(output.stdout).toBe("");
   });
 
+  it("formats parser errors as JSON when requested", async () => {
+    const output = createOutput();
+    const exitCode = await runCli(["node", "flomo-web", "list", "--limit", "nope", "--json"], output.io);
+
+    expect(exitCode).toBe(1);
+    expect(JSON.parse(output.stderr)).toEqual({
+      ok: false,
+      error: {
+        code: "BAD_REQUEST",
+        message: "option '--limit <number>' argument 'nope' is invalid. must be a positive integer"
+      }
+    });
+    expect(output.stderr).not.toContain("error:");
+    expect(output.stdout).toBe("");
+  });
+
   it("formats command errors with codes in human mode", async () => {
     const output = createOutput();
     await withTempConfigEnv(async () => {

@@ -50,6 +50,15 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
   try {
     await program.parseAsync(argv);
   } catch (error) {
+    const exitCode = commandExitCode(error);
+    if (exitCode !== 0 && wantsJsonOutput(argv)) {
+      if (parserStdout) {
+        io.stdout.write(parserStdout);
+      }
+      io.stderr.write(withNewline(formatJson({ ok: false, error: parserPublicError(error, parserStderr) })));
+      return exitCode;
+    }
+
     if (parserStdout) {
       io.stdout.write(parserStdout);
     }
@@ -57,7 +66,7 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
       io.stderr.write(parserStderr);
     }
 
-    return commandExitCode(error);
+    return exitCode;
   }
 
   if (parserStdout) {
@@ -205,6 +214,10 @@ function isJsonMode(command: ParsedCommand): boolean {
   return command.options.json === true;
 }
 
+function wantsJsonOutput(argv: string[]): boolean {
+  return argv.includes("--json");
+}
+
 function writeResult(result: CommandResult, io: CliIo): void {
   if (result.stdout) {
     io.stdout.write(withNewline(result.stdout));
@@ -224,6 +237,33 @@ function commandExitCode(error: unknown): number {
   }
 
   return 1;
+}
+
+function parserPublicError(error: unknown, parserStderr: string): ReturnType<typeof toPublicError> {
+  return {
+    code: "BAD_REQUEST",
+    message: parserErrorMessage(error, parserStderr)
+  };
+}
+
+function parserErrorMessage(error: unknown, parserStderr: string): string {
+  const stderrMessage = stripCommanderErrorPrefix(parserStderr);
+  if (stderrMessage) {
+    return stderrMessage;
+  }
+
+  if (error instanceof Error) {
+    const errorMessage = stripCommanderErrorPrefix(error.message);
+    if (errorMessage) {
+      return errorMessage;
+    }
+  }
+
+  return "CLI 参数无效。";
+}
+
+function stripCommanderErrorPrefix(text: string): string {
+  return text.trim().replace(/^error:\s*/i, "").trim();
 }
 
 function toCliPublicError(error: unknown): ReturnType<typeof toPublicError> {
