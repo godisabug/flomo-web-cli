@@ -1,4 +1,4 @@
-import { Command, InvalidArgumentError } from "commander";
+import { Command, InvalidArgumentError, Option } from "commander";
 
 export interface ParsedCommand {
   name: string;
@@ -26,7 +26,7 @@ export function createProgram(onCommand?: (command: ParsedCommand) => void): Com
     .argument("<query>", "Search query.")
     .option("--authorization <authorization>", "flomo Authorization header override.")
     .option("--limit <number>", "Maximum number of memos to show.", parsePositiveInteger, 20)
-    .option("--scope <scope>", "Search scope: recent or all.", "recent")
+    .addOption(new Option("--scope <scope>", "Search scope.").choices(["recent", "all"]).default("recent"))
     .option("--json", "Print JSON output.", false)
     .action((query: string, options: Record<string, unknown>) => {
       onCommand?.({ name: "search", args: [query], options });
@@ -48,7 +48,7 @@ export function createProgram(onCommand?: (command: ParsedCommand) => void): Com
     .description("Get a memo by slug.")
     .argument("<slug>", "Memo slug.")
     .option("--authorization <authorization>", "flomo Authorization header override.")
-    .option("--scope <scope>", "Lookup scope: recent or all.", "recent")
+    .addOption(new Option("--scope <scope>", "Lookup scope.").choices(["recent", "all"]).default("recent"))
     .option("--json", "Print JSON output.", false)
     .action((slug: string, options: Record<string, unknown>) => {
       onCommand?.({ name: "get", args: [slug], options });

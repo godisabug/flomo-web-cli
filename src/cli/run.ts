@@ -75,7 +75,7 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
     writeResult(result, io);
     return result.exitCode;
   } catch (error) {
-    const publicError = toPublicError(error);
+    const publicError = toCliPublicError(error);
     const stderr = isJsonMode(parsedCommand) ? formatJson({ ok: false, error: publicError }) : `${publicError.code}: ${publicError.message}`;
     io.stderr.write(withNewline(stderr));
     return 1;
@@ -84,7 +84,7 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
 
 async function dispatch(command: ParsedCommand): Promise<CommandResult> {
   if (command.name === "config:set" || command.name === "config:get" || command.name === "config:unset" || command.name === "config:list") {
-    return runConfigCommand(await buildContext(command.options), configOptions(command));
+    return runConfigCommand(buildConfigContext(), configOptions(command));
   }
 
   const context = await buildContext(command.options);
@@ -143,6 +143,12 @@ async function buildContext(options: Record<string, unknown>): Promise<CommandCo
     cachePath,
     readClient: new BearerFlomoReadClient(config, httpClient),
     writeClient: new BearerFlomoWriteClient(config, httpClient)
+  };
+}
+
+function buildConfigContext(): { configPath: string } {
+  return {
+    configPath: getUserConfigPath()
   };
 }
 
@@ -218,6 +224,18 @@ function commandExitCode(error: unknown): number {
   }
 
   return 1;
+}
+
+function toCliPublicError(error: unknown): ReturnType<typeof toPublicError> {
+  const publicError = toPublicError(error);
+  if (publicError.code === "UNKNOWN") {
+    return {
+      code: "UNKNOWN",
+      message: "未知错误。"
+    };
+  }
+
+  return publicError;
 }
 
 function configureParser(program: ReturnType<typeof createProgram>, output: { writeOut: (text: string) => void; writeErr: (text: string) => void }): void {

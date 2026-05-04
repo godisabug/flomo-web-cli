@@ -41,6 +41,18 @@ describe("CLI runtime", () => {
     expect(output.stderr).toBe("");
   });
 
+  it("runs config commands without validating network runtime env", async () => {
+    const output = createOutput();
+    await withTempConfigEnv(async () => {
+      vi.stubEnv("FLOMO_BASE_URL", "not-a-url");
+      const exitCode = await runCli(["node", "flomo-web", "config", "list", "--json"], output.io);
+      expect(exitCode).toBe(0);
+    });
+
+    expect(JSON.parse(output.stdout)).toEqual({ ok: true, items: [] });
+    expect(output.stderr).toBe("");
+  });
+
   it("formats command errors as JSON when requested", async () => {
     const output = createOutput();
     await withTempConfigEnv(async () => {
@@ -66,6 +78,31 @@ describe("CLI runtime", () => {
     });
 
     expect(output.stderr).toBe("CONFIG_INVALID: Unsupported config key: unsupported\n");
+    expect(output.stdout).toBe("");
+  });
+
+  it("sanitizes unknown network command errors in JSON mode", async () => {
+    const output = createOutput();
+    await withTempConfigEnv(async () => {
+      vi.stubEnv("FLOMO_BASE_URL", "not-a-url");
+      const exitCode = await runCli(["node", "flomo-web", "list", "--json"], output.io);
+      expect(exitCode).toBe(1);
+    });
+
+    const parsed = JSON.parse(output.stderr) as { error: { code: string; message: string } };
+    expect(parsed.error.code).toBe("UNKNOWN");
+    expect(parsed.error.message).toBe("未知错误。");
+    expect(output.stderr).not.toContain("not-a-url");
+    expect(output.stderr).not.toContain("Invalid url");
+    expect(output.stdout).toBe("");
+  });
+
+  it("rejects invalid scope values before dispatch", async () => {
+    const output = createOutput();
+    const exitCode = await runCli(["node", "flomo-web", "search", "alpha", "--scope", "bad"], output.io);
+
+    expect(exitCode).toBe(1);
+    expect(output.stderr).toContain("Allowed choices are recent, all");
     expect(output.stdout).toBe("");
   });
 

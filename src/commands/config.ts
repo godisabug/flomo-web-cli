@@ -2,8 +2,12 @@ import { CliError } from "../core/errors.js";
 import { isUserConfigKey, maskConfigValue, readUserConfig, userConfigSchema, writeUserConfig, type UserConfig } from "../config/userConfig.js";
 import { formatMaskedConfigEntries } from "../formatters/human.js";
 import { formatJson } from "../formatters/json.js";
-import type { CommandContext, CommandResult } from "./types.js";
+import type { CommandResult } from "./types.js";
 import { ok } from "./types.js";
+
+export interface ConfigCommandContext {
+  configPath: string;
+}
 
 export type ConfigCommandOptions =
   | { action: "set"; key: string; value: string; json?: boolean }
@@ -11,7 +15,7 @@ export type ConfigCommandOptions =
   | { action: "unset"; key: string; json?: boolean }
   | { action: "list"; json?: boolean };
 
-export async function runConfigCommand(context: CommandContext, options: ConfigCommandOptions): Promise<CommandResult> {
+export async function runConfigCommand(context: ConfigCommandContext, options: ConfigCommandOptions): Promise<CommandResult> {
   const config = await readUserConfig(context.configPath);
 
   if (options.action === "list") {
