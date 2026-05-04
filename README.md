@@ -12,6 +12,23 @@ This is not an official flomo project. It depends on flomo Web internal endpoint
 
 ## Install
 
+Current source/local development:
+
+```bash
+npm install
+npm run build
+node dist/index.js --help
+```
+
+To install the local checkout as a global command while developing:
+
+```bash
+npm link
+flomo-web --help
+```
+
+After publication, the published package can be installed globally:
+
 ```bash
 npm install -g flomo-web-cli
 ```
@@ -59,8 +76,11 @@ Linux: ${XDG_CONFIG_HOME:-~/.config}/flomo-web-cli/config.json
 
 ## Commands
 
+Data commands accept `--authorization <value>` to override configured credentials for that invocation.
+
 ```bash
 flomo-web list --limit 20
+flomo-web list --authorization "Bearer your-token-here"
 flomo-web list --json
 ```
 
