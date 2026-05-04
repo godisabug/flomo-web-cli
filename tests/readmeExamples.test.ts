@@ -17,7 +17,7 @@ describe("README", () => {
     expect(readme).toContain("npm run build");
     expect(readme).toContain("npm link");
     expect(readme).toContain("After publication");
-    expect(readme).not.toContain("Bearer real");
+    expect(readme).not.toContain(["Bearer", "real"].join(" "));
 
     const localInstallIndex = readme.indexOf("Current source/local development");
     const publicationIndex = readme.indexOf("After publication");
