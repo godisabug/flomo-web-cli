@@ -1,3 +1,6 @@
 #!/usr/bin/env node
 
-console.log("flomo-web-cli development scaffold");
+import { runCli } from "./cli/run.js";
+
+const exitCode = await runCli(process.argv);
+process.exitCode = exitCode;
