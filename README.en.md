@@ -19,22 +19,37 @@ This is not an official flomo project. It depends on flomo Web internal endpoint
 
 ## Install
 
-Current source/local development:
+### Install From GitHub
 
 ```bash
-npm install
-npm run build
+npm install -g github:godisabug/flomo-web-cli
+```
+
+The installed command is:
+
+```bash
+flomo-web --help
+```
+
+### Clone For Local Deployment
+
+This repository only keeps the runtime files needed for user deployment. It does not include development source or tests.
+
+```bash
+git clone https://github.com/godisabug/flomo-web-cli.git
+cd flomo-web-cli
+npm install --omit=dev
 node dist/index.js --help
 ```
 
-To install the local checkout as a global command while developing:
+To register the local checkout as a global command:
 
 ```bash
 npm link
 flomo-web --help
 ```
 
-After publication, the published package can be installed globally:
+### After npm Publication
 
 ```bash
 npm install -g flomo-web-cli

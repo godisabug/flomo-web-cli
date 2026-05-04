@@ -37,22 +37,37 @@
 
 ## 安装
 
-### 当前源码/本地开发
+### 通过 GitHub 安装
 
 ```bash
-npm install
-npm run build
+npm install -g github:godisabug/flomo-web-cli
+```
+
+安装后命令为：
+
+```bash
+flomo-web --help
+```
+
+### 克隆仓库部署
+
+本仓库只保留用户部署需要的运行文件，不包含开发源码和测试。
+
+```bash
+git clone https://github.com/godisabug/flomo-web-cli.git
+cd flomo-web-cli
+npm install --omit=dev
 node dist/index.js --help
 ```
 
-### 本地全局命令
+如需在本机注册全局命令：
 
 ```bash
 npm link
 flomo-web --help
 ```
 
-### 发布后
+### npm 发布后
 
 ```bash
 npm install -g flomo-web-cli
