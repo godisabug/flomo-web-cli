@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -143,19 +143,24 @@ describe("note cache", () => {
   it("writes through a temporary file before replacing the final cache", async () => {
     const actualFs = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
     const writes: string[] = [];
+    const renames: Array<[string, string]> = [];
 
     vi.resetModules();
     vi.doMock("node:fs/promises", () => ({
       ...actualFs,
-      writeFile: vi.fn(async (filePath: Parameters<typeof writeFile>[0]) => {
+      writeFile: vi.fn(async (filePath: Parameters<typeof writeFile>[0], data: Parameters<typeof writeFile>[1], options?: Parameters<typeof writeFile>[2]) => {
         writes.push(String(filePath));
+        await actualFs.writeFile(filePath, data, options);
       }),
-      rename: vi.fn()
+      rename: vi.fn(async (oldPath: Parameters<typeof rename>[0], newPath: Parameters<typeof rename>[1]) => {
+        renames.push([String(oldPath), String(newPath)]);
+        await actualFs.rename(oldPath, newPath);
+      })
     }));
 
     try {
       const { writeNoteCache: writeNoteCacheWithMockedFs } = await import("../src/cache/noteCache.js");
-      const file = join(await tempFile(), "notes.json");
+      const file = await tempFile();
 
       await writeNoteCacheWithMockedFs(file, {
         syncedAt: "2026-05-03T00:00:00.000Z",
@@ -165,6 +170,7 @@ describe("note cache", () => {
 
       expect(writes).toHaveLength(1);
       expect(writes[0]).not.toBe(file);
+      expect(renames).toEqual([[writes[0], file]]);
     } finally {
       vi.doUnmock("node:fs/promises");
       vi.resetModules();
