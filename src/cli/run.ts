@@ -150,6 +150,7 @@ async function buildContext(options: Record<string, unknown>): Promise<CommandCo
   return {
     configPath,
     cachePath,
+    timezone: config.timezone,
     readClient: new BearerFlomoReadClient(config, httpClient),
     writeClient: new BearerFlomoWriteClient(config, httpClient)
   };

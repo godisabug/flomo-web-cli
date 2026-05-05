@@ -23,7 +23,7 @@ export async function runGetCommand(context: CommandContext, options: GetCommand
       description: "Memo lookup used the local synced memo cache."
     };
 
-    return ok(options.json ? formatJson({ ok: true, memo, scope }) : formatMemoDetail(memo));
+    return ok(options.json ? formatJson({ ok: true, memo, scope }) : formatMemoDetail(memo, context.timezone));
   }
 
   const memo = await context.readClient.getBySlug(options.slug);
@@ -33,5 +33,5 @@ export async function runGetCommand(context: CommandContext, options: GetCommand
     description: "Memo lookup is limited to the recent memo batch returned by flomo Web."
   };
 
-  return ok(options.json ? formatJson({ ok: true, memo, scope }) : formatMemoDetail(memo));
+  return ok(options.json ? formatJson({ ok: true, memo, scope }) : formatMemoDetail(memo, context.timezone));
 }

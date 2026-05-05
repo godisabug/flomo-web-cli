@@ -29,6 +29,7 @@ async function createContext(): Promise<CommandContext> {
   return {
     configPath,
     cachePath,
+    timezone: "Asia/Shanghai",
     readClient: {
       list: async () => items,
       search: async (query: string) => items.filter((item) => item.content.includes(query)),

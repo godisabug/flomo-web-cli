@@ -8,15 +8,15 @@ export interface MaskedConfigEntry {
   maskedValue: string;
 }
 
-export function formatMemoList(items: Memo[]): string {
+export function formatMemoList(items: Memo[], timezone = "UTC"): string {
   if (items.length === 0) {
     return "No memos found.";
   }
 
-  return items.map(formatMemoSummary).join("\n\n");
+  return items.map((memo) => formatMemoSummary(memo, timezone)).join("\n\n");
 }
 
-export function formatMemoDetail(memo: Memo | null): string {
+export function formatMemoDetail(memo: Memo | null, timezone = "UTC"): string {
   if (!memo) {
     return "Memo not found.";
   }
@@ -25,8 +25,8 @@ export function formatMemoDetail(memo: Memo | null): string {
   return [
     `Slug: ${memo.slug}`,
     `URL: ${memo.url}`,
-    `Created: ${memo.createdAt}`,
-    `Updated: ${memo.updatedAt}${tags}`,
+    `Created: ${formatMemoTimestamp(memo.createdAt, timezone)}`,
+    `Updated: ${formatMemoTimestamp(memo.updatedAt, timezone)}${tags}`,
     "",
     memo.content
   ].join("\n");
@@ -52,7 +52,31 @@ export function formatMaskedConfigEntries(entries: MaskedConfigEntry[]): string 
   return entries.map((entry) => `${entry.key}=${entry.maskedValue}`).join("\n");
 }
 
-function formatMemoSummary(memo: Memo): string {
+function formatMemoSummary(memo: Memo, timezone: string): string {
   const tags = memo.tags.length ? ` ${memo.tags.join(" ")}` : "";
-  return [`${memo.createdAt || "unknown"} ${memo.slug}${tags}`, summarize(memo.content)].join("\n");
+  return [`${formatMemoTimestamp(memo.createdAt, timezone)} ${memo.slug}${tags}`, summarize(memo.content)].join("\n");
+}
+
+function formatMemoTimestamp(value: string, timezone: string): string {
+  if (!value) {
+    return "unknown";
+  }
+
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return value;
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(parsed));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day} ${values.hour}:${values.minute}:${values.second}`;
 }

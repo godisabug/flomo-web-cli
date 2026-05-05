@@ -25,7 +25,7 @@ export async function runSearchCommand(context: CommandContext, options: SearchC
       description: "Results are searched from the local synced memo cache."
     };
 
-    return ok(options.json ? formatJson({ ok: true, items, scope }) : formatMemoList(items));
+    return ok(options.json ? formatJson({ ok: true, items, scope }) : formatMemoList(items, context.timezone));
   }
 
   const items = await context.readClient.search(options.query, options.limit);
@@ -35,5 +35,5 @@ export async function runSearchCommand(context: CommandContext, options: SearchC
     description: "Results are limited to the recent memo batch returned by flomo Web."
   };
 
-  return ok(options.json ? formatJson({ ok: true, items, scope }) : formatMemoList(items));
+  return ok(options.json ? formatJson({ ok: true, items, scope }) : formatMemoList(items, context.timezone));
 }

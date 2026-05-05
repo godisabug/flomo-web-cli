@@ -34,7 +34,13 @@ describe("formatJson", () => {
 
 describe("human formatters", () => {
   it("formats memo lists", () => {
-    expect(formatMemoList([memo])).toBe("2026-05-03T00:00:00.000Z abc #work\nA long memo body that should be shown in a compact way");
+    expect(formatMemoList([memo])).toBe("2026-05-03 00:00:00 abc #work\nA long memo body that should be shown in a compact way");
+  });
+
+  it("formats memo timestamps in configured timezone", () => {
+    expect(formatMemoList([memo], "Asia/Shanghai")).toBe(
+      "2026-05-03 08:00:00 abc #work\nA long memo body that should be shown in a compact way"
+    );
   });
 
   it("formats empty memo lists", () => {
