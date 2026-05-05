@@ -3,6 +3,7 @@ import type { FlomoReadClient, FlomoWriteClient } from "../core/types/flomo.js";
 export interface CommandContext {
   configPath: string;
   cachePath: string;
+  timezone: string;
   readClient: FlomoReadClient;
   writeClient: FlomoWriteClient;
 }

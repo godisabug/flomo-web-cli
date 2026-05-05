@@ -25,5 +25,5 @@ export async function runListCommand(context: CommandContext, options: ListComma
     );
   }
 
-  return ok(formatMemoList(items));
+  return ok(formatMemoList(items, context.timezone));
 }
