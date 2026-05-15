@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.1.2
+
+- Fix `flomo-web --version` to read the package version instead of using a stale hardcoded value.
+
 ## 0.1.1
 
 - Restore source, tests, and TypeScript project files for GitHub development.

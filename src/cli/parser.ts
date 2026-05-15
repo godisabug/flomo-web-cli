@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { Command, InvalidArgumentError, Option } from "commander";
 
 export interface ParsedCommand {
@@ -6,9 +7,11 @@ export interface ParsedCommand {
   options: Record<string, unknown>;
 }
 
+const packageVersion = readPackageVersion();
+
 export function createProgram(onCommand?: (command: ParsedCommand) => void): Command {
   const program = new Command();
-  program.name("flomo-web").description("Third-party flomo command line tool based on flomo Web session credentials.").version("0.1.0");
+  program.name("flomo-web").description("Third-party flomo command line tool based on flomo Web session credentials.").version(packageVersion);
 
   program
     .command("list")
@@ -118,4 +121,15 @@ function parsePositiveInteger(value: string): number {
 
 function collectOption(value: string, previous: string[]): string[] {
   return [...previous, value];
+}
+
+function readPackageVersion(): string {
+  const packageJsonUrl = new URL("../../package.json", import.meta.url);
+  const packageJson = JSON.parse(readFileSync(packageJsonUrl, "utf8")) as { version?: unknown };
+
+  if (typeof packageJson.version !== "string" || packageJson.version.length === 0) {
+    throw new Error("package.json version must be a non-empty string");
+  }
+
+  return packageJson.version;
 }

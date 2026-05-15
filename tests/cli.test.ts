@@ -30,6 +30,17 @@ describe("CLI parser", () => {
 });
 
 describe("CLI runtime", () => {
+  it("prints the package version", async () => {
+    const packageJson = await import("../package.json", { with: { type: "json" } });
+    const output = createOutput();
+
+    const exitCode = await runCli(["node", "flomo-web", "--version"], output.io);
+
+    expect(exitCode).toBe(0);
+    expect(output.stdout).toBe(`${packageJson.default.version}\n`);
+    expect(output.stderr).toBe("");
+  });
+
   it("runs config commands without Authorization", async () => {
     const output = createOutput();
     await withTempConfigEnv(async () => {
