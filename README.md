@@ -84,6 +84,29 @@ npm install -g flomo-web-cli
 flomo-web
 ```
 
+## 目录结构
+
+```text
+flomo-web-cli/
+├─ .github/                        GitHub 工作流与模板
+├─ docs/
+│  └─ images/
+│     └─ get-authorization-edge-headers.png
+├─ src/
+│  ├─ cache/                       本地缓存读写
+│  ├─ cli/                         CLI 参数解析与入口
+│  ├─ commands/                    各子命令实现
+│  ├─ config/                      配置加载与合并
+│  ├─ core/                        flomo Web 客户端与核心模型
+│  ├─ formatters/                  输出格式化
+│  └─ utils/                       通用工具
+├─ tests/                          自动化测试
+├─ .env.example                    环境变量示例
+├─ README.md                       中文说明文档
+├─ README.en.md                    英文说明文档
+└─ package.json                    项目元数据与脚本
+```
+
 ## 配置
 
 可以使用环境变量、`.env` 或用户配置文件。环境变量和 `.env` 会覆盖用户配置。
@@ -190,12 +213,21 @@ Linux: ${XDG_CACHE_HOME:-~/.cache}/flomo-web-cli/notes.json
 
 ## 获取 Authorization
 
-1. 浏览器登录 flomo Web。
-2. 打开 DevTools 的 Network。
-3. 刷新页面。
-4. 找到 flomo 的 XHR/fetch 请求。
-5. 从 Request Headers 复制 `Authorization: Bearer ...`。
-6. 用 `flomo-web config set authorization "Bearer ..."` 或 `FLOMO_AUTHORIZATION` 保存。
+以 Microsoft Edge 为例，可以按下面的步骤获取 flomo Web 的 `Authorization`：
+
+1. 登录 flomo 网页端，按 `Ctrl` + `Shift` + `I` 打开开发人员工具，然后切到“网络（Network）”面板。
+2. 刷新页面，在筛选框中输入 `api/v1/memo/updated`，打开任意一条匹配请求。
+3. 在右侧详情中切到“标头（Headers）”。
+4. 在 `Request Headers` 中找到 `Authorization`，复制 `Bearer ` 开头的完整值。
+5. 将该值保存到 CLI 配置或环境变量中，例如：
+
+```bash
+flomo-web config set authorization "Bearer your-token-here"
+```
+
+![在 Edge 开发者工具中查看 flomo Authorization 请求头](docs/images/get-authorization-edge-headers.png)
+
+> 只复制 `Bearer ...` 的值，不要连同 `Authorization:` 字段名一起复制，更不要把真实凭据提交到仓库或截图公开分享。
 
 ## 安全提醒
 

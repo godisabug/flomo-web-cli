@@ -66,6 +66,29 @@ The global command is:
 flomo-web
 ```
 
+## Project Layout
+
+```text
+flomo-web-cli/
+├─ .github/                        GitHub workflows and templates
+├─ docs/
+│  └─ images/
+│     └─ get-authorization-edge-headers.png
+├─ src/
+│  ├─ cache/                       persistent cache support
+│  ├─ cli/                         CLI parsing and entrypoint
+│  ├─ commands/                    subcommand implementations
+│  ├─ config/                      config loading and resolution
+│  ├─ core/                        flomo Web clients and core models
+│  ├─ formatters/                  human and JSON output formatters
+│  └─ utils/                       shared helpers
+├─ tests/                          automated tests
+├─ .env.example                    environment variable example
+├─ README.md                       Chinese documentation
+├─ README.en.md                    English documentation
+└─ package.json                    package metadata and scripts
+```
+
 ## Configure
 
 Use environment variables, `.env`, or user config. Environment variables and `.env` override user config.
@@ -172,12 +195,22 @@ The cache contains memo content. Do not upload it, share it, or commit it.
 
 ## Getting Authorization
 
-1. Log in to flomo Web in your browser.
-2. Open DevTools and inspect Network requests.
-3. Refresh the page.
-4. Find a flomo XHR or fetch request.
-5. Copy the `Authorization: Bearer ...` request header.
+Microsoft Edge example:
+
+1. Log in to flomo Web, press `Ctrl` + `Shift` + `I`, and switch to the `Network` panel.
+2. Refresh the page, or perform any action in flomo that triggers a request.
+3. Filter requests with `api/v1/memo/updated` and open any matching entry.
+4. Open the `Headers` tab in the request details.
+5. Copy the full `Authorization` value from `Request Headers`. It should start with `Bearer `.
 6. Store it with `flomo-web config set authorization "Bearer ..."` or `FLOMO_AUTHORIZATION`.
+
+```bash
+flomo-web config set authorization "Bearer your-token-here"
+```
+
+![Inspecting the flomo Authorization request header in Edge DevTools](docs/images/get-authorization-edge-headers.png)
+
+> Copy only the `Bearer ...` value. Do not include the `Authorization:` field name, and never commit or share real credentials.
 
 ## Security Notes
 
