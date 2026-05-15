@@ -26,7 +26,7 @@ export class BearerFlomoReadClient implements FlomoReadClient {
 
   async list(limit = DEFAULT_LIMIT): Promise<Memo[]> {
     const items = await this.getRecentBatch();
-    return items.slice(0, normalizeLimit(limit));
+    return sortMemosByCreatedAtDesc(items).slice(0, normalizeLimit(limit));
   }
 
   async search(query: string, limit = DEFAULT_LIMIT): Promise<Memo[]> {
@@ -194,6 +194,18 @@ function normalizeBoundedInteger(value: number | undefined, fallback: number, ma
   }
 
   return Math.max(1, Math.min(max, Math.trunc(value)));
+}
+
+function sortMemosByCreatedAtDesc(items: Memo[]): Memo[] {
+  return items
+    .map((item, index) => ({ item, index, createdAt: timestampToMilliseconds(item.createdAt) }))
+    .sort((left, right) => right.createdAt - left.createdAt || left.index - right.index)
+    .map(({ item }) => item);
+}
+
+function timestampToMilliseconds(value: string): number {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

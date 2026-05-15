@@ -91,4 +91,19 @@ describe("BearerFlomoReadClient", () => {
 
     await expect(client.list()).resolves.toMatchObject([{ slug: "abc", content: "Hello" }]);
   });
+
+  it("lists memos by created time descending before applying limit", async () => {
+    const httpClient = {
+      requestJson: async () => ({
+        data: [
+          { slug: "updated-first", content: "Updated first", created_at: "2026-01-26T03:06:08.000Z", updated_at: "2026-05-15T03:28:26.000Z" },
+          { slug: "newest-created", content: "Newest created", created_at: "2026-05-15T03:28:26.000Z", updated_at: "2026-05-15T03:28:26.000Z" },
+          { slug: "middle-created", content: "Middle created", created_at: "2026-05-14T07:37:21.000Z", updated_at: "2026-05-14T07:37:21.000Z" }
+        ]
+      })
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+    const client = new BearerFlomoReadClient(config, httpClient);
+
+    await expect(client.list(2)).resolves.toMatchObject([{ slug: "newest-created" }, { slug: "middle-created" }]);
+  });
 });
