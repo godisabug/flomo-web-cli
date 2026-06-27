@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`flomo-web-cli` is a third-party local CLI for flomo. It uses your own flomo Web session credentials to list, search, sync, get, and create memos.
+`flomo-web-cli` is a third-party local CLI for flomo. It uses your own flomo Web session credentials to list, search, sync, get, randomly roam, and create memos.
 
 This is not an official flomo project. It depends on flomo Web internal endpoints and may break if those endpoints change. Use it only in local environments you trust.
 
@@ -152,6 +152,14 @@ flomo-web get memo-slug --json
 ```
 
 ```bash
+flomo-web random
+flomo-web random --no-sync
+flomo-web random --tag work --tag idea
+flomo-web random --exclude-tag private
+flomo-web random --json
+```
+
+```bash
 flomo-web create "memo content #tag"
 echo "memo content" | flomo-web create --stdin
 flomo-web create "memo content" --tag work --tag daily
@@ -181,7 +189,7 @@ Data commands support `--json`. JSON output is written to stdout as one JSON obj
 
 ## Cache
 
-`flomo-web sync` writes a persistent note cache so later commands can use `--scope all`.
+`flomo-web sync` writes a persistent note cache so later commands can use `--scope all`, and `random --no-sync` can select from the cache. `flomo-web random` tries to refresh memos first by default; if refresh fails and a valid local cache exists, it selects from the cache and prints a warning. For custom sync pagination, run `flomo-web sync --page-size 200 --max-pages 50` first, then run `flomo-web random --no-sync`.
 
 Default cache paths:
 

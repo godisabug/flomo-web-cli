@@ -19,6 +19,11 @@ describe("README", () => {
     expect(readme).toContain("flomo-web get");
     expect(readme).toContain("flomo-web create");
     expect(readme).toContain("flomo-web config");
+    expect(readme).toContain("flomo-web random");
+    expect(readme).toContain("flomo-web random --no-sync");
+    expect(readme).toContain("flomo-web random --tag work --tag idea");
+    expect(readme).toContain("flomo-web random --exclude-tag private");
+    expect(readme).toContain("默认会先尝试同步最新 memo");
     expect(readme).toContain("Authorization");
     expect(readme).toContain("缓存");
     expect(readme).toContain("当前源码/本地开发");
@@ -28,6 +33,9 @@ describe("README", () => {
     expect(readme).toContain("发布后");
     expect(readme).not.toContain(["Bearer", "real"].join(" "));
     expect(englishReadme).toContain("Current source/local development");
+    expect(englishReadme).toContain("flomo-web random");
+    expect(englishReadme).toContain("flomo-web random --no-sync");
+    expect(englishReadme).toContain("tries to refresh memos first");
 
     const localInstallIndex = readme.indexOf("当前源码/本地开发");
     const publicationIndex = readme.indexOf("发布后");

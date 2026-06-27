@@ -19,8 +19,8 @@
 ## 功能
 
 - 使用 flomo Web 会话凭据访问 memo，不需要 flomo Pro。
-- 支持最近 memo 列表、关键词搜索、按 `slug` 查看、创建 memo。
-- 支持 `sync` 将 memo 写入本地持久缓存，后续可用 `--scope all` 做全量缓存搜索或定位。
+- 支持最近 memo 列表、关键词搜索、按 `slug` 查看、随机漫游、创建 memo。
+- 支持 `sync` 将 memo 写入本地持久缓存，后续可用 `--scope all` 做全量缓存搜索或定位，也可用 `random --no-sync` 从缓存中随机抽取。
 - 默认输出适合人工阅读；加 `--json` 可用于脚本自动化。
 - 支持用户配置文件、`.env`、环境变量和单次命令参数。
 
@@ -170,6 +170,14 @@ flomo-web get memo-slug --json
 ```
 
 ```bash
+flomo-web random
+flomo-web random --no-sync
+flomo-web random --tag work --tag idea
+flomo-web random --exclude-tag private
+flomo-web random --json
+```
+
+```bash
 flomo-web create "memo content #tag"
 echo "memo content" | flomo-web create --stdin
 flomo-web create "memo content" --tag work --tag daily
@@ -199,7 +207,7 @@ flomo-web config list
 
 ## 缓存
 
-`flomo-web sync` 会写入本地持久缓存，之后 `search --scope all` 和 `get --scope all` 可以从缓存中查询。
+`flomo-web sync` 会写入本地持久缓存，之后 `search --scope all`、`get --scope all` 和 `random --no-sync` 可以从缓存中查询。`flomo-web random` 默认会先尝试同步最新 memo；如果同步失败但本地缓存可用，会从缓存中随机抽取并输出警告。需要自定义同步分页时，先运行 `flomo-web sync --page-size 200 --max-pages 50`，再运行 `flomo-web random --no-sync`。
 
 默认缓存路径：
 
