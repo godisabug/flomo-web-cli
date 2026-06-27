@@ -187,6 +187,7 @@ describe("commands", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
       memo: { slug: "a" },
+      candidateCount: 1,
       filters: {
         tags: ["#work"],
         excludeTags: ["#private"]
@@ -226,6 +227,40 @@ describe("commands", () => {
     expect(result.stdout).toContain("Slug: cached");
     expect(result.stderr).toContain("sync failed");
     expect(result.stderr).toContain("using cached memos from 2026-05-02T00:00:00.000Z");
+  });
+
+  it("random JSON sanitizes unknown refresh errors when falling back to cache", async () => {
+    const context = await createContext();
+    await writeNoteCache(context.cachePath, {
+      syncedAt: "2026-05-02T00:00:00.000Z",
+      complete: true,
+      items: [memo("cached", "cached #work")]
+    });
+    const failingContext: CommandContext = {
+      ...context,
+      readClient: {
+        ...context.readClient,
+        syncAll: async () => {
+          throw new Error("sensitive");
+        }
+      }
+    };
+
+    const result = await runRandomCommand(failingContext, { json: true, rng: () => 0 });
+
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      memo: { slug: "cached" },
+      refresh: {
+        attempted: true,
+        ok: false,
+        fallback: "cache",
+        error: {
+          code: "UNKNOWN",
+          message: "未知错误。"
+        }
+      }
+    });
   });
 
   it("random surfaces refresh failure when fallback cache is unavailable", async () => {
