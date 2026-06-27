@@ -69,6 +69,18 @@ export function createProgram(onCommand?: (command: ParsedCommand) => void): Com
       onCommand?.({ name: "create", args: content, options });
     });
 
+  program
+    .command("random")
+    .description("Show one random flomo memo.")
+    .option("--authorization <authorization>", "flomo Authorization header override.")
+    .option("--tag <tag>", "Only include memos matching the tag.", collectOption, [])
+    .option("--exclude-tag <tag>", "Exclude memos matching the tag.", collectOption, [])
+    .option("--no-sync", "Use the existing local cache without refreshing first.")
+    .option("--json", "Print JSON output.", false)
+    .action((options: Record<string, unknown>) => {
+      onCommand?.({ name: "random", args: [], options });
+    });
+
   const config = program.command("config").description("Manage flomo-web CLI configuration.");
 
   config

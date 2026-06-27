@@ -25,7 +25,20 @@ describe("CLI parser", () => {
 
   it("has the expected command names", () => {
     const names = createProgram().commands.map((command) => command.name());
-    expect(names).toEqual(["list", "search", "sync", "get", "create", "config"]);
+    expect(names).toEqual(["list", "search", "sync", "get", "create", "random", "config"]);
+  });
+
+  it("parses random options", () => {
+    const program = createProgram();
+    program.exitOverride();
+    program.parse(["node", "flomo-web", "random", "--tag", "work", "--tag", "idea", "--exclude-tag", "private", "--no-sync", "--json"]);
+    const command = program.commands.find((item) => item.name() === "random");
+    expect(command?.opts()).toMatchObject({
+      tag: ["work", "idea"],
+      excludeTag: ["private"],
+      sync: false,
+      json: true
+    });
   });
 });
 

@@ -11,6 +11,7 @@ import { runConfigCommand, type ConfigCommandOptions } from "../commands/config.
 import { runCreateCommand } from "../commands/create.js";
 import { runGetCommand, type GetScope } from "../commands/get.js";
 import { runListCommand } from "../commands/list.js";
+import { runRandomCommand } from "../commands/random.js";
 import { runSearchCommand, type SearchScope } from "../commands/search.js";
 import { runSyncCommand } from "../commands/sync.js";
 import type { CommandContext, CommandResult } from "../commands/types.js";
@@ -128,6 +129,13 @@ async function dispatch(command: ParsedCommand): Promise<CommandResult> {
         content: command.args.join(" "),
         tags: stringArrayOption(command.options.tag),
         stdin: booleanOption(command.options.stdin)
+      });
+    case "random":
+      return runRandomCommand(context, {
+        json: booleanOption(command.options.json),
+        tags: stringArrayOption(command.options.tag),
+        excludeTags: stringArrayOption(command.options.excludeTag),
+        noSync: command.options.sync === false
       });
     default:
       throw new CliError("BAD_REQUEST", `Unsupported command: ${command.name}`);
