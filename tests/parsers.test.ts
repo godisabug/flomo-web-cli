@@ -113,6 +113,61 @@ describe("memo parser", () => {
     expect(memo.html).toBeUndefined();
   });
 
+  it("parses image-only memos with blank text content", () => {
+    const memo = parseMemo(
+      {
+        slug: "image-only",
+        content: "",
+        files: [
+          {
+            type: "image",
+            name: "1780979216007_7GohGHyY.jpg",
+            size: 129187,
+            url: "https://cdn.example.com/image.jpg",
+            thumbnail_url: "https://cdn.example.com/image-thumb.jpg",
+            path: "memo/images/1780979216007_7GohGHyY.jpg"
+          }
+        ],
+        created_at: "2026-05-03T10:00:00.000Z",
+        updated_at: "2026-05-03T11:00:00.000Z"
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo).toEqual({
+      slug: "image-only",
+      content: "",
+      tags: [],
+      url: "https://v.flomoapp.com/mine/?memo_id=image-only",
+      createdAt: "2026-05-03T10:00:00.000Z",
+      updatedAt: "2026-05-03T11:00:00.000Z",
+      files: [
+        {
+          type: "image",
+          name: "1780979216007_7GohGHyY.jpg",
+          size: 129187,
+          url: "https://cdn.example.com/image.jpg",
+          thumbnailUrl: "https://cdn.example.com/image-thumb.jpg",
+          path: "memo/images/1780979216007_7GohGHyY.jpg"
+        }
+      ]
+    });
+  });
+
+  it("parses attachment-only memos without text aliases", () => {
+    const memo = parseMemo(
+      {
+        slug: "attachment-only",
+        attachments: [{ name: "scan.pdf", url: "https://cdn.example.com/scan.pdf" }]
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe("");
+    expect(memo.files).toEqual([{ name: "scan.pdf", url: "https://cdn.example.com/scan.pdf" }]);
+    expect(memo.url).toBe("https://v.flomoapp.com/mine/?memo_id=attachment-only");
+  });
+
   it("preserves raw memo URLs", () => {
     const memo = parseMemo(
       {

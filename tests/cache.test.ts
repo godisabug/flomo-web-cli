@@ -140,6 +140,57 @@ describe("note cache", () => {
     } satisfies Partial<CliError>);
   });
 
+  it("reads cached memo file metadata", async () => {
+    const file = await tempFile();
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        syncedAt: "2026-05-03T00:00:00.000Z",
+        complete: true,
+        items: [
+          {
+            slug: "image-only",
+            content: "",
+            tags: [],
+            url: "https://v.flomoapp.com/memo/image-only",
+            createdAt: "2026-05-03T00:00:00.000Z",
+            updatedAt: "2026-05-03T00:00:00.000Z",
+            files: [
+              {
+                type: "image",
+                name: "1780979216007_7GohGHyY.jpg",
+                size: 129187,
+                url: "https://cdn.example.com/image.jpg",
+                thumbnailUrl: "https://cdn.example.com/image-thumb.jpg",
+                path: "memo/images/1780979216007_7GohGHyY.jpg"
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    await expect(readNoteCache(file)).resolves.toMatchObject({
+      items: [
+        {
+          slug: "image-only",
+          content: "",
+          files: [
+            {
+              type: "image",
+              name: "1780979216007_7GohGHyY.jpg",
+              size: 129187,
+              url: "https://cdn.example.com/image.jpg",
+              thumbnailUrl: "https://cdn.example.com/image-thumb.jpg",
+              path: "memo/images/1780979216007_7GohGHyY.jpg"
+            }
+          ]
+        }
+      ]
+    });
+  });
+
   it("writes through a temporary file before replacing the final cache", async () => {
     const actualFs = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
     const writes: string[] = [];

@@ -106,4 +106,52 @@ describe("BearerFlomoReadClient", () => {
 
     await expect(client.list(2)).resolves.toMatchObject([{ slug: "newest-created" }, { slug: "middle-created" }]);
   });
+
+  it("syncs image-only memos without failing the whole page", async () => {
+    const httpClient = {
+      requestJson: async () => ({
+        data: [
+          { slug: "text", content: "<p>Hello</p>", updated_at: 1710000100 },
+          {
+            slug: "image-only",
+            content: "",
+            files: [
+              {
+                type: "image",
+                name: "1780979216007_7GohGHyY.jpg",
+                size: 129187,
+                url: "https://cdn.example.com/image.jpg",
+                thumbnail_url: "https://cdn.example.com/image-thumb.jpg",
+                path: "memo/images/1780979216007_7GohGHyY.jpg"
+              }
+            ],
+            updated_at: 1710000000
+          }
+        ]
+      })
+    } as Pick<FlomoHttpClient, "requestJson"> as FlomoHttpClient;
+    const client = new BearerFlomoReadClient(config, httpClient);
+
+    await expect(client.syncAll({ pageSize: 10, maxPages: 1 })).resolves.toMatchObject({
+      synced: 2,
+      complete: true,
+      items: [
+        { slug: "text", content: "Hello" },
+        {
+          slug: "image-only",
+          content: "",
+          files: [
+            {
+              type: "image",
+              name: "1780979216007_7GohGHyY.jpg",
+              size: 129187,
+              url: "https://cdn.example.com/image.jpg",
+              thumbnailUrl: "https://cdn.example.com/image-thumb.jpg",
+              path: "memo/images/1780979216007_7GohGHyY.jpg"
+            }
+          ]
+        }
+      ]
+    });
+  });
 });

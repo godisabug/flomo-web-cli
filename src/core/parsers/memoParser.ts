@@ -1,7 +1,39 @@
-import type { Memo } from "../models/memo.js";
+import type { Memo, MemoFile } from "../models/memo.js";
 import { FlomoParseError } from "../errors.js";
 import { htmlToText, normalizeWhitespace } from "../utils/text.js";
 import { extractInlineTags, normalizeTags } from "./tagParser.js";
+
+const HTML_SOURCE_KEYS = ["html", "content", "rich_text", "source_content"];
+const PLAIN_TEXT_SOURCE_KEYS = ["plain_text", "text", "summary", "plainText"];
+const CONTENT_SOURCE_KEYS = [...PLAIN_TEXT_SOURCE_KEYS, ...HTML_SOURCE_KEYS];
+const MEDIA_SOURCE_KEYS = [
+  "attachments",
+  "attachment_list",
+  "attachmentList",
+  "audios",
+  "audio_list",
+  "audioList",
+  "assets",
+  "file_ids",
+  "fileIds",
+  "file_list",
+  "fileList",
+  "files",
+  "image_list",
+  "imageList",
+  "images",
+  "media",
+  "photos",
+  "photo_list",
+  "photoList",
+  "resources",
+  "resource_list",
+  "resourceList",
+  "uploads",
+  "video_list",
+  "videoList",
+  "videos"
+];
 
 export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
   if (!isRecord(raw)) {
@@ -13,10 +45,10 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
     throw new FlomoParseError("memo 缺少 slug。");
   }
 
-  const html = pickString(raw, ["html", "content", "rich_text", "source_content"]);
-  const plainText = pickString(raw, ["plain_text", "text", "summary", "plainText"]);
-  const contentSource = plainText ?? html;
-  if (!contentSource) {
+  const html = pickString(raw, HTML_SOURCE_KEYS);
+  const plainText = pickString(raw, PLAIN_TEXT_SOURCE_KEYS);
+  const contentSource = plainText ?? html ?? pickBlankString(raw, CONTENT_SOURCE_KEYS) ?? pickMediaOnlyContent(raw);
+  if (contentSource === undefined) {
     throw new FlomoParseError("memo 缺少 content/html/text 字段。");
   }
 
@@ -27,11 +59,13 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
   const inlineTags = extractInlineTags(content);
   const tags = normalizeTags([...apiTags, ...inlineTags]);
   const url = pickString(raw, ["url", "link", "share_url"]) ?? buildMemoUrl(webBaseUrl, slug);
+  const files = extractMemoFiles(raw);
 
   return {
     slug,
     content,
     ...(html && looksLikeHtml(html) ? { html } : {}),
+    ...(files.length > 0 ? { files } : {}),
     tags,
     url,
     createdAt,
@@ -57,6 +91,78 @@ function pickString(record: Record<string, unknown>, keys: string[]): string | u
   return undefined;
 }
 
+function pickBlankString(record: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    if (typeof record[key] === "string") {
+      return "";
+    }
+  }
+
+  return undefined;
+}
+
+function pickMediaOnlyContent(record: Record<string, unknown>): string | undefined {
+  return MEDIA_SOURCE_KEYS.some((key) => hasMediaValue(record[key])) ? "" : undefined;
+}
+
+function extractMemoFiles(record: Record<string, unknown>): MemoFile[] {
+  const files: MemoFile[] = [];
+
+  for (const key of MEDIA_SOURCE_KEYS) {
+    files.push(...extractMemoFilesFromValue(record[key], key, 0));
+  }
+
+  return files;
+}
+
+function extractMemoFilesFromValue(value: unknown, sourceKey: string, depth: number): MemoFile[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractMemoFilesFromValue(item, sourceKey, depth + 1));
+  }
+
+  const file = normalizeMemoFile(value, sourceKey);
+  if (file) {
+    return [file];
+  }
+
+  if (isRecord(value) && depth === 0) {
+    return Object.values(value).flatMap((item) => extractMemoFilesFromValue(item, sourceKey, depth + 1));
+  }
+
+  return [];
+}
+
+function normalizeMemoFile(value: unknown, sourceKey: string): MemoFile | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return sourceKey.toLowerCase().includes("id") ? { id: value } : { url: value };
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const id = pickString(value, ["id", "file_id", "fileId"]);
+  const type = pickString(value, ["type", "file_type", "fileType"]);
+  const name = pickString(value, ["name", "filename", "file_name", "fileName"]);
+  const size = pickFiniteNumber(value, ["size", "file_size", "fileSize"]);
+  const url = pickString(value, ["url", "src", "download_url", "downloadUrl"]);
+  const thumbnailUrl = pickString(value, ["thumbnail_url", "thumbnailUrl", "thumb_url", "thumbUrl"]);
+  const path = pickString(value, ["path", "key"]);
+  const mimeType = pickString(value, ["mime_type", "mimeType", "content_type", "contentType"]);
+  const file: MemoFile = {
+    ...(id ? { id } : {}),
+    ...(type ? { type } : {}),
+    ...(name ? { name } : {}),
+    ...(size !== undefined ? { size } : {}),
+    ...(url ? { url } : {}),
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    ...(path ? { path } : {}),
+    ...(mimeType ? { mimeType } : {})
+  };
+
+  return Object.keys(file).length > 0 ? file : undefined;
+}
+
 function normalizeDate(value: unknown): string | undefined {
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
@@ -69,6 +175,44 @@ function normalizeDate(value: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function pickFiniteNumber(record: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) {
+        return numeric;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function hasMediaValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasMediaValue);
+  }
+
+  if (isRecord(value)) {
+    return Object.values(value).some(hasMediaValue);
+  }
+
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  return value === true;
 }
 
 function looksLikeHtml(value: string): boolean {

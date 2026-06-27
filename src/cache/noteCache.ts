@@ -24,6 +24,22 @@ const MemoSchema = z
     slug: z.string(),
     content: z.string(),
     html: z.string().optional(),
+    files: z
+      .array(
+        z
+          .object({
+            id: z.string().optional(),
+            type: z.string().optional(),
+            name: z.string().optional(),
+            size: z.number().optional(),
+            url: z.string().url().optional(),
+            thumbnailUrl: z.string().url().optional(),
+            path: z.string().optional(),
+            mimeType: z.string().optional()
+          })
+          .strict()
+      )
+      .optional(),
     tags: z.array(z.string()),
     url: z.string().url(),
     createdAt: z.string(),
