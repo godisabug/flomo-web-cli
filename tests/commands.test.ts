@@ -2,9 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { readNoteCache, writeNoteCache } from "../src/cache/noteCache.js";
 import { runCreateCommand } from "../src/commands/create.js";
 import { runGetCommand } from "../src/commands/get.js";
 import { runListCommand } from "../src/commands/list.js";
+import { runRandomCommand } from "../src/commands/random.js";
 import { runSearchCommand } from "../src/commands/search.js";
 import { runSyncCommand } from "../src/commands/sync.js";
 import { runConfigCommand } from "../src/commands/config.js";
@@ -154,5 +156,130 @@ describe("commands", () => {
     expect(context.calls.listLimit).toBe(7);
     expect(context.calls.syncOptions).toEqual({ pageSize: 11, maxPages: 3 });
     expect(context.calls.createInput).toEqual({ content: "hello", tags: ["work"] });
+  });
+
+  it("random refreshes cache and prints the selected memo", async () => {
+    const context = await createTrackingContext();
+
+    const result = await runRandomCommand(context, { json: false, rng: () => 0 });
+
+    expect(result.stdout).toContain("Slug: a");
+    expect(result.stdout).toContain("alpha #work");
+    expect(result.stderr).toBe("");
+    expect(context.calls.syncOptions).toEqual({});
+    await expect(readNoteCache(context.cachePath)).resolves.toMatchObject({
+      complete: true,
+      syncedAt: "2026-05-03T00:00:00.000Z",
+      items: [{ slug: "a" }, { slug: "b" }]
+    });
+  });
+
+  it("random JSON includes filters refresh metadata and scope", async () => {
+    const context = await createContext();
+
+    const result = await runRandomCommand(context, {
+      json: true,
+      tags: ["work"],
+      excludeTags: ["private"],
+      rng: () => 0
+    });
+
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      memo: { slug: "a" },
+      filters: {
+        tags: ["#work"],
+        excludeTags: ["#private"]
+      },
+      refresh: {
+        attempted: true,
+        ok: true,
+        fallback: null
+      },
+      scope: {
+        source: "all_synced_notes",
+        complete: true,
+        syncedAt: "2026-05-03T00:00:00.000Z"
+      }
+    });
+  });
+
+  it("random falls back to existing cache when refresh fails", async () => {
+    const context = await createContext();
+    await writeNoteCache(context.cachePath, {
+      syncedAt: "2026-05-02T00:00:00.000Z",
+      complete: true,
+      items: [memo("cached", "cached #work")]
+    });
+    const failingContext: CommandContext = {
+      ...context,
+      readClient: {
+        ...context.readClient,
+        syncAll: async () => {
+          throw new CliError("AUTH_EXPIRED", "expired");
+        }
+      }
+    };
+
+    const result = await runRandomCommand(failingContext, { json: false, rng: () => 0 });
+
+    expect(result.stdout).toContain("Slug: cached");
+    expect(result.stderr).toContain("sync failed");
+    expect(result.stderr).toContain("using cached memos from 2026-05-02T00:00:00.000Z");
+  });
+
+  it("random surfaces refresh failure when fallback cache is unavailable", async () => {
+    const context = await createContext();
+    const failingContext: CommandContext = {
+      ...context,
+      readClient: {
+        ...context.readClient,
+        syncAll: async () => {
+          throw new CliError("AUTH_EXPIRED", "expired");
+        }
+      }
+    };
+
+    await expect(runRandomCommand(failingContext, { json: false, rng: () => 0 })).rejects.toMatchObject({
+      code: "AUTH_EXPIRED",
+      message: "expired"
+    } satisfies Partial<CliError>);
+  });
+
+  it("random --no-sync reads cache without refreshing", async () => {
+    const context = await createTrackingContext();
+    await writeNoteCache(context.cachePath, {
+      syncedAt: "2026-05-02T00:00:00.000Z",
+      complete: true,
+      items: [memo("cached", "cached #work")]
+    });
+
+    const result = await runRandomCommand(context, { json: true, noSync: true, rng: () => 0 });
+
+    expect(context.calls.syncOptions).toBeUndefined();
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      memo: { slug: "cached" },
+      refresh: {
+        attempted: false
+      }
+    });
+  });
+
+  it("random returns no-result output when filters leave no candidates", async () => {
+    const context = await createContext();
+
+    const human = await runRandomCommand(context, { json: false, tags: ["missing"], rng: () => 0 });
+    const json = await runRandomCommand(context, { json: true, tags: ["missing"], rng: () => 0 });
+
+    expect(human.stdout).toBe("No matching memos found.");
+    expect(JSON.parse(json.stdout)).toMatchObject({
+      ok: true,
+      memo: null,
+      filters: {
+        tags: ["#missing"],
+        excludeTags: []
+      }
+    });
   });
 });
