@@ -23,7 +23,10 @@ describe("README", () => {
     expect(readme).toContain("flomo-web random --no-sync");
     expect(readme).toContain("flomo-web random --tag work --tag idea");
     expect(readme).toContain("flomo-web random --exclude-tag private");
+    expect(readme).toContain("flomo-web random --json");
     expect(readme).toContain("默认会先尝试同步最新 memo");
+    expect(readme).toContain("如果同步失败但本地缓存可用");
+    expect(readme).toContain("flomo-web sync --page-size 200 --max-pages 50");
     expect(readme).toContain("Authorization");
     expect(readme).toContain("缓存");
     expect(readme).toContain("当前源码/本地开发");
@@ -35,7 +38,12 @@ describe("README", () => {
     expect(englishReadme).toContain("Current source/local development");
     expect(englishReadme).toContain("flomo-web random");
     expect(englishReadme).toContain("flomo-web random --no-sync");
+    expect(englishReadme).toContain("flomo-web random --tag work --tag idea");
+    expect(englishReadme).toContain("flomo-web random --exclude-tag private");
+    expect(englishReadme).toContain("flomo-web random --json");
     expect(englishReadme).toContain("tries to refresh memos first");
+    expect(englishReadme).toContain("if refresh fails and a valid local cache exists");
+    expect(englishReadme).toContain("flomo-web sync --page-size 200 --max-pages 50");
 
     const localInstallIndex = readme.indexOf("当前源码/本地开发");
     const publicationIndex = readme.indexOf("发布后");
