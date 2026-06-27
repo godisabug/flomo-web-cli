@@ -2,8 +2,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { writeNoteCache } from "../src/cache/noteCache.js";
 import { createProgram } from "../src/cli/parser.js";
 import { runCli } from "../src/cli/run.js";
+import { getNoteCachePath } from "../src/utils/filesystem.js";
 
 const tempDirs: string[] = [];
 
@@ -74,6 +76,50 @@ describe("CLI runtime", () => {
     });
 
     expect(JSON.parse(output.stdout)).toEqual({ ok: true, items: [] });
+    expect(output.stderr).toBe("");
+  });
+
+  it("runs random from cache without Authorization when sync is disabled", async () => {
+    const output = createOutput();
+    await withTempConfigEnv(async () => {
+      await writeNoteCache(getNoteCachePath(), {
+        syncedAt: "2026-06-28T00:00:00.000Z",
+        complete: true,
+        items: [
+          {
+            slug: "cached-work-memo",
+            content: "Cached work memo #work",
+            tags: ["#work"],
+            url: "https://v.flomoapp.com/mine/?memo_id=cached-work-memo",
+            createdAt: "2026-06-27T00:00:00.000Z",
+            updatedAt: "2026-06-27T00:00:00.000Z"
+          },
+          {
+            slug: "private-work-memo",
+            content: "Private work memo #work #private",
+            tags: ["#work", "#private"],
+            url: "https://v.flomoapp.com/mine/?memo_id=private-work-memo",
+            createdAt: "2026-06-26T00:00:00.000Z",
+            updatedAt: "2026-06-26T00:00:00.000Z"
+          }
+        ]
+      });
+
+      const exitCode = await runCli(["node", "flomo-web", "random", "--tag", "work", "--exclude-tag", "private", "--no-sync", "--json"], output.io);
+      expect(exitCode).toBe(0);
+    });
+
+    const parsed = JSON.parse(output.stdout) as {
+      ok: boolean;
+      memo: { slug: string };
+      filters: { tags: string[]; excludeTags: string[] };
+      refresh: { attempted: boolean };
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.memo.slug).toBe("cached-work-memo");
+    expect(parsed.filters.tags).toEqual(["#work"]);
+    expect(parsed.filters.excludeTags).toEqual(["#private"]);
+    expect(parsed.refresh.attempted).toBe(false);
     expect(output.stderr).toBe("");
   });
 
