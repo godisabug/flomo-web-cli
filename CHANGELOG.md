@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 0.1.3
+
+- Fix `flomo-web sync` for image-only and attachment-only memos with empty text content.
+- Preserve parsed memo file metadata in sync results and the local cache.
+- Refresh the lockfile so CI's moderate-or-higher npm audit gate passes.
+
 ## 0.1.2
 
 - Fix `flomo-web --version` to read the package version instead of using a stale hardcoded value.
