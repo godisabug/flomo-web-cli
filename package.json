@@ -1,6 +1,6 @@
 {
   "name": "flomo-web-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "Third-party flomo command line tool based on flomo Web session credentials.",
   "license": "MIT",

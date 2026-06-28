@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 0.1.4
+
+- Add `flomo-web random` to refresh memos by default and show one random memo.
+- Support `random --no-sync`, `--tag`, `--exclude-tag`, and JSON refresh metadata.
+- Document the random memo workflow in Chinese and English READMEs.
+
 ## 0.1.3
 
 - Fix `flomo-web sync` for image-only and attachment-only memos with empty text content.
