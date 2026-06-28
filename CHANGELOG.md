@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 0.1.5
+
+- Preserve memo line breaks and richer text layout when parsing flomo HTML content.
+- Prefer full memo content over flattened summaries.
+- Repair cached memo text from stored HTML when cached content was previously flattened.
+
 ## 0.1.4
 
 - Add `flomo-web random` to refresh memos by default and show one random memo.

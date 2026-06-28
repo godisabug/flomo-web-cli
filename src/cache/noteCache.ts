@@ -5,6 +5,7 @@ import { z } from "zod";
 import { CliError } from "../core/errors.js";
 import type { Memo } from "../core/models/memo.js";
 import type { MemoPageCursor } from "../core/types/flomo.js";
+import { htmlToText } from "../core/utils/text.js";
 import { ensureParentDirectory } from "../utils/filesystem.js";
 
 export const NOTE_CACHE_VERSION = 1;
@@ -88,7 +89,7 @@ export async function readNoteCache(filePath: string): Promise<NoteCache> {
   }
 
   try {
-    return NoteCacheSchema.parse(json);
+    return normalizeCachedMemoContent(NoteCacheSchema.parse(json));
   } catch (error) {
     throw new CliError("CACHE_INVALID", "缓存文件无效。请重新运行 flomo-web sync。", { cause: error });
   }
@@ -96,10 +97,10 @@ export async function readNoteCache(filePath: string): Promise<NoteCache> {
 
 export async function writeNoteCache(filePath: string, input: WriteNoteCacheInput): Promise<NoteCache> {
   await ensureParentDirectory(filePath);
-  const cache = NoteCacheSchema.parse({
+  const cache = normalizeCachedMemoContent(NoteCacheSchema.parse({
     version: NOTE_CACHE_VERSION,
     ...input
-  });
+  }));
   const tempFilePath = getTempCachePath(filePath);
 
   try {
@@ -113,6 +114,20 @@ export async function writeNoteCache(filePath: string, input: WriteNoteCacheInpu
   }
 
   return cache;
+}
+
+function normalizeCachedMemoContent(cache: NoteCache): NoteCache {
+  return {
+    ...cache,
+    items: cache.items.map((item) => {
+      if (!item.html) {
+        return item;
+      }
+
+      const content = htmlToText(item.html);
+      return content === item.content ? item : { ...item, content };
+    })
+  };
 }
 
 function getTempCachePath(filePath: string): string {

@@ -46,6 +46,39 @@ describe("note cache", () => {
     });
   });
 
+  it("repairs cached memo content from stored HTML", async () => {
+    const file = await tempFile();
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        syncedAt: "2026-05-03T00:00:00.000Z",
+        complete: true,
+        items: [
+          {
+            slug: "stale-content",
+            content: "#英语\ntake a look atcan you come to take a look at my PC?be terrible withI'm terrible with math.",
+            html:
+              '<p>#英语</p><p>take a look at<br data-type="hardBreak">can you come to take a look at my PC?<br class="break">be terrible with<br data-break="true">I\'m terrible with math.</p>',
+            tags: ["#英语"],
+            url: "https://v.flomoapp.com/memo/stale-content",
+            createdAt: "2026-05-03T00:00:00.000Z",
+            updatedAt: "2026-05-03T00:00:00.000Z"
+          }
+        ]
+      })
+    );
+
+    await expect(readNoteCache(file)).resolves.toMatchObject({
+      items: [
+        {
+          slug: "stale-content",
+          content: "#英语\ntake a look at\ncan you come to take a look at my PC?\nbe terrible with\nI'm terrible with math."
+        }
+      ]
+    });
+  });
+
   it("creates nested parent directories and writes a trailing newline", async () => {
     const dir = await mkdtemp(join(tmpdir(), "flomo-web-cli-cache-"));
     tempDirs.push(dir);

@@ -100,7 +100,59 @@ describe("memo parser", () => {
     expect(memo.html).toBe("<div>Hello&nbsp;<strong>world</strong></div>");
   });
 
-  it("normalizes plain summary content", () => {
+  it("uses rich content instead of flattened summaries when both are present", () => {
+    const memo = parseMemo(
+      {
+        slug: "rich-over-summary",
+        content:
+          '<p>#英语</p><p>take a look at<br data-type="hardBreak">can you come to take a look at my PC?<br class="break">be terrible with<br data-break="true">I\'m terrible with math.</p>',
+        summary: "#英语\ntake a look atcan you come to take a look at my PC?be terrible withI'm terrible with math."
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe(
+      "#英语\ntake a look at\ncan you come to take a look at my PC?\nbe terrible with\nI'm terrible with math."
+    );
+  });
+
+  it("preserves attributed HTML line breaks", () => {
+    const memo = parseMemo(
+      {
+        slug: "attributed-breaks",
+        content: 'first<br data-type="hardBreak">second<br class="break" />third'
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe("first\nsecond\nthird");
+  });
+
+  it("formats HTML list items as plain-text bullets", () => {
+    const memo = parseMemo(
+      {
+        slug: "list-items",
+        content: "<p>Tasks</p><ul><li>one</li><li><strong>two</strong></li></ul><p>Done</p>"
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe("Tasks\n- one\n- two\nDone");
+  });
+
+  it("preserves preformatted HTML spacing", () => {
+    const memo = parseMemo(
+      {
+        slug: "preformatted",
+        content: "<pre>  const value = 1;\n\n    return value;</pre>"
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe("  const value = 1;\n\n    return value;");
+  });
+
+  it("preserves plain summary spacing and blank lines", () => {
     const memo = parseMemo(
       {
         slug: "summary",
@@ -109,8 +161,20 @@ describe("memo parser", () => {
       "https://v.flomoapp.com"
     );
 
-    expect(memo.content).toBe("Line one\n\nLine two");
+    expect(memo.content).toBe("  Line one \n\n\n Line two  ");
     expect(memo.html).toBeUndefined();
+  });
+
+  it("normalizes non-LF plain text line separators", () => {
+    const memo = parseMemo(
+      {
+        slug: "plain-line-separators",
+        text: "Line one\rLine two\u2028Line three\u2029Line four"
+      },
+      "https://v.flomoapp.com"
+    );
+
+    expect(memo.content).toBe("Line one\nLine two\nLine three\nLine four");
   });
 
   it("parses image-only memos with blank text content", () => {

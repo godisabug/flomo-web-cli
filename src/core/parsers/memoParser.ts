@@ -1,11 +1,12 @@
 import type { Memo, MemoFile } from "../models/memo.js";
 import { FlomoParseError } from "../errors.js";
-import { htmlToText, normalizeWhitespace } from "../utils/text.js";
+import { htmlToText, normalizeMemoText } from "../utils/text.js";
 import { extractInlineTags, normalizeTags } from "./tagParser.js";
 
 const HTML_SOURCE_KEYS = ["html", "content", "rich_text", "source_content"];
-const PLAIN_TEXT_SOURCE_KEYS = ["plain_text", "text", "summary", "plainText"];
-const CONTENT_SOURCE_KEYS = [...PLAIN_TEXT_SOURCE_KEYS, ...HTML_SOURCE_KEYS];
+const PLAIN_TEXT_SOURCE_KEYS = ["plain_text", "text", "plainText"];
+const SUMMARY_SOURCE_KEYS = ["summary"];
+const CONTENT_SOURCE_KEYS = [...HTML_SOURCE_KEYS, ...PLAIN_TEXT_SOURCE_KEYS, ...SUMMARY_SOURCE_KEYS];
 const MEDIA_SOURCE_KEYS = [
   "attachments",
   "attachment_list",
@@ -46,13 +47,12 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
   }
 
   const html = pickString(raw, HTML_SOURCE_KEYS);
-  const plainText = pickString(raw, PLAIN_TEXT_SOURCE_KEYS);
-  const contentSource = plainText ?? html ?? pickBlankString(raw, CONTENT_SOURCE_KEYS) ?? pickMediaOnlyContent(raw);
+  const contentSource = pickContentSource(raw) ?? pickBlankString(raw, CONTENT_SOURCE_KEYS) ?? pickMediaOnlyContent(raw);
   if (contentSource === undefined) {
     throw new FlomoParseError("memo 缺少 content/html/text 字段。");
   }
 
-  const content = looksLikeHtml(contentSource) ? htmlToText(contentSource) : normalizeWhitespace(contentSource);
+  const content = looksLikeHtml(contentSource) ? htmlToText(contentSource) : normalizeMemoText(contentSource);
   const createdAt = normalizeDate(raw.created_at ?? raw.createdAt ?? raw.created_time ?? raw.created) ?? "";
   const updatedAt = normalizeDate(raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified) ?? createdAt;
   const apiTags = normalizeTags([raw.tags, raw.tag_list, raw.tag_names, raw.labels]);
@@ -71,6 +71,13 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
     createdAt,
     updatedAt
   };
+}
+
+function pickContentSource(record: Record<string, unknown>): string | undefined {
+  const fullContent = pickString(record, HTML_SOURCE_KEYS);
+  const plainText = pickString(record, PLAIN_TEXT_SOURCE_KEYS);
+  const summary = pickString(record, SUMMARY_SOURCE_KEYS);
+  return fullContent ?? plainText ?? summary;
 }
 
 function buildMemoUrl(baseUrl: string, slug: string): string {
