@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -226,6 +226,7 @@ describe("note cache", () => {
 
   it("writes through a temporary file before replacing the final cache", async () => {
     const actualFs = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+    const operations: string[] = [];
     const writes: string[] = [];
     const renames: Array<[string, string]> = [];
 
@@ -233,10 +234,16 @@ describe("note cache", () => {
     vi.doMock("node:fs/promises", () => ({
       ...actualFs,
       writeFile: vi.fn(async (filePath: Parameters<typeof writeFile>[0], data: Parameters<typeof writeFile>[1], options?: Parameters<typeof writeFile>[2]) => {
+        operations.push("write");
         writes.push(String(filePath));
         await actualFs.writeFile(filePath, data, options);
       }),
+      chmod: vi.fn(async (filePath: Parameters<typeof chmod>[0], mode: Parameters<typeof chmod>[1]) => {
+        operations.push("chmod");
+        await actualFs.chmod(filePath, mode);
+      }),
       rename: vi.fn(async (oldPath: Parameters<typeof rename>[0], newPath: Parameters<typeof rename>[1]) => {
+        operations.push("rename");
         renames.push([String(oldPath), String(newPath)]);
         await actualFs.rename(oldPath, newPath);
       })
@@ -255,6 +262,7 @@ describe("note cache", () => {
       expect(writes).toHaveLength(1);
       expect(writes[0]).not.toBe(file);
       expect(renames).toEqual([[writes[0], file]]);
+      expect(operations).toEqual(["write", "chmod", "rename"]);
     } finally {
       vi.doUnmock("node:fs/promises");
       vi.resetModules();

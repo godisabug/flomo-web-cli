@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadEnvConfig } from "../src/config/env.js";
 import { maskConfigValue, readUserConfig, writeUserConfig } from "../src/config/userConfig.js";
 import { resolveConfig } from "../src/config/resolvedConfig.js";
@@ -68,6 +68,41 @@ describe("user config", () => {
     await writeUserConfig(file, { timezone: "Asia/Shanghai" });
 
     expect((await stat(file)).mode & 0o777).toBe(0o600);
+  });
+
+  it("preserves the existing config and cleans the temporary file when writing fails", async () => {
+    const dir = await tempDir();
+    const file = join(dir, "config.json");
+    const originalConfig = { authorization: "Bearer existing", timezone: "UTC" };
+    await writeFile(file, `${JSON.stringify(originalConfig, null, 2)}\n`, { mode: 0o600 });
+    const actualFs = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+
+    vi.resetModules();
+    vi.doMock("node:fs/promises", () => ({
+      ...actualFs,
+      writeFile: vi.fn(
+        async (
+          filePath: Parameters<typeof writeFile>[0],
+          data: Parameters<typeof writeFile>[1],
+          options?: Parameters<typeof writeFile>[2]
+        ) => {
+          await actualFs.writeFile(filePath, data, options);
+          throw new Error("simulated write failure");
+        }
+      )
+    }));
+
+    try {
+      const { writeUserConfig: writeUserConfigWithFailingWrite } = await import("../src/config/userConfig.js");
+
+      await expect(writeUserConfigWithFailingWrite(file, { timezone: "Asia/Shanghai" })).rejects.toThrow("simulated write failure");
+
+      await expect(readUserConfig(file)).resolves.toEqual(originalConfig);
+      await expect(actualFs.readdir(dir)).resolves.toEqual(["config.json"]);
+    } finally {
+      vi.doUnmock("node:fs/promises");
+      vi.resetModules();
+    }
   });
 
   it("masks sensitive values", () => {

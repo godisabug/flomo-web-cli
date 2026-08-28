@@ -1,12 +1,10 @@
-import { chmod, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
-import { randomBytes } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { CliError } from "../core/errors.js";
 import type { Memo } from "../core/models/memo.js";
 import type { MemoPageCursor } from "../core/types/flomo.js";
 import { htmlToText } from "../core/utils/text.js";
-import { ensureParentDirectory } from "../utils/filesystem.js";
+import { writePrivateTextFile } from "../utils/privateFile.js";
 
 export const NOTE_CACHE_VERSION = 1;
 
@@ -96,22 +94,11 @@ export async function readNoteCache(filePath: string): Promise<NoteCache> {
 }
 
 export async function writeNoteCache(filePath: string, input: WriteNoteCacheInput): Promise<NoteCache> {
-  await ensureParentDirectory(filePath);
   const cache = normalizeCachedMemoContent(NoteCacheSchema.parse({
     version: NOTE_CACHE_VERSION,
     ...input
   }));
-  const tempFilePath = getTempCachePath(filePath);
-
-  try {
-    await writeFile(tempFilePath, `${JSON.stringify(cache, null, 2)}\n`, { mode: 0o600 });
-    await hardenFileMode(tempFilePath);
-    await rename(tempFilePath, filePath);
-    await hardenFileMode(filePath);
-  } catch (error) {
-    await removeTempFile(tempFilePath);
-    throw error;
-  }
+  await writePrivateTextFile(filePath, `${JSON.stringify(cache, null, 2)}\n`);
 
   return cache;
 }
@@ -130,38 +117,10 @@ function normalizeCachedMemoContent(cache: NoteCache): NoteCache {
   };
 }
 
-function getTempCachePath(filePath: string): string {
-  return join(dirname(filePath), `.${basename(filePath)}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`);
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && "code" in error;
-}
-
-async function hardenFileMode(filePath: string): Promise<void> {
-  try {
-    await chmod(filePath, 0o600);
-  } catch (error) {
-    if (isIgnorableChmodError(error)) {
-      return;
-    }
-
-    throw error;
-  }
-}
-
-function isIgnorableChmodError(error: unknown): boolean {
-  return isNodeError(error) && (process.platform === "win32" || error.code === "ENOSYS" || error.code === "ENOTSUP" || error.code === "EOPNOTSUPP");
-}
-
-async function removeTempFile(filePath: string): Promise<void> {
-  try {
-    await rm(filePath, { force: true });
-  } catch {
-    return;
-  }
 }

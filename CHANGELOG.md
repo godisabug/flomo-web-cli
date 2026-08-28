@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## 0.1.6
+
+- Write user configuration and the memo cache through atomic private-file replacement.
+- Preserve the previous local state and clean temporary files when a write fails.
+- Centralize private-file permission hardening and document local-state terminology.
+- Refresh the development dependency lockfile to pass the release security audit.
+
 ## 0.1.5
 
 - Preserve memo line breaks and richer text layout when parsing flomo HTML content.
