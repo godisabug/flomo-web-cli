@@ -43,7 +43,8 @@ const EnvSchema = z.object({
 const UrlSchema = z.string().url();
 
 export function loadDotenvFile(): void {
-  loadDotenv();
+  // dotenv 17+ logs a status line by default; keep stderr for errors (one JSON object with --json).
+  loadDotenv({ quiet: true });
 }
 
 export function loadEnvConfig(env: NodeJS.ProcessEnv = process.env): PartialRuntimeConfig {
