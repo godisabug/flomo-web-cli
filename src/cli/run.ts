@@ -85,7 +85,7 @@ export async function runCli(argv: string[], io: CliIo = defaultIo): Promise<num
     writeResult(result, io);
     return result.exitCode;
   } catch (error) {
-    const publicError = toCliPublicError(error);
+    const publicError = toPublicError(error);
     const stderr = isJsonMode(parsedCommand) ? formatJson({ ok: false, error: publicError }) : `${publicError.code}: ${publicError.message}`;
     io.stderr.write(withNewline(stderr));
     return 1;
@@ -273,18 +273,6 @@ function parserErrorMessage(error: unknown, parserStderr: string): string {
 
 function stripCommanderErrorPrefix(text: string): string {
   return text.trim().replace(/^error:\s*/i, "").trim();
-}
-
-function toCliPublicError(error: unknown): ReturnType<typeof toPublicError> {
-  const publicError = toPublicError(error);
-  if (publicError.code === "UNKNOWN") {
-    return {
-      code: "UNKNOWN",
-      message: "未知错误。"
-    };
-  }
-
-  return publicError;
 }
 
 function configureParser(program: ReturnType<typeof createProgram>, output: { writeOut: (text: string) => void; writeErr: (text: string) => void }): void {

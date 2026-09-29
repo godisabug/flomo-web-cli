@@ -302,4 +302,12 @@ describe("public errors", () => {
     const error = new FlomoRequestError("BAD_REQUEST", "bad input");
     expect(toPublicError(error)).toEqual({ code: "BAD_REQUEST", message: "bad input" });
   });
+
+  it("does not expose raw messages from unexpected errors", () => {
+    expect(toPublicError(new Error("failed with Authorization: Bearer secret-token"))).toEqual({
+      code: "UNKNOWN",
+      message: "未知错误。"
+    });
+    expect(toPublicError("raw string")).toEqual({ code: "UNKNOWN", message: "未知错误。" });
+  });
 });
