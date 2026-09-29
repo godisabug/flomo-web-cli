@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Refresh the development dependency lockfile to clear new moderate npm audit findings in `vitest` and `esbuild`.
 - Return a generic message for unexpected (`UNKNOWN`) errors from the shared core `toPublicError`, replacing the separate CLI and `random` fallbacks.
 - Interpret zoneless flomo date strings (`YYYY-MM-DD HH:mm:ss`) in the configured timezone instead of the host timezone, fixing shifted `createdAt`/`updatedAt` and sync cursors that could skip memos on hosts outside that timezone. Run `flomo-web sync` once to rewrite a Memo Cache created before this fix.
 
