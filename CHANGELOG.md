@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Check dependency advisories in a separate daily and on-change `Dependency audit` workflow instead of `npm run verify`, add Dependabot security and grouped version updates, and gate `npm publish` on `npm run audit:prod`.
 - Rework the README: npm install first with a quick start, a full environment variable table, and sections shared verbatim with flomo-web-mcp (guarded by a fingerprint test).
 - Refresh the development dependency lockfile to clear new moderate npm audit findings in `vitest` and `esbuild`.
 - Return a generic message for unexpected (`UNKNOWN`) errors from the shared core `toPublicError`, replacing the separate CLI and `random` fallbacks.
