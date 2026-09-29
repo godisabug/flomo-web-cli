@@ -10,8 +10,16 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # @types/node tracks the minimum supported Node.js version (package.json#engines); bump it by hand.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # v3 only supports the Copilot CLI provider, which summary.yml does not set up (see #9).
+      - dependency-name: actions/ai-inference
+        update-types: ["version-update:semver-major"]
