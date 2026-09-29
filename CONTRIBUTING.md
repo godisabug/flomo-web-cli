@@ -21,6 +21,13 @@ Use Node.js 20.19.0 or newer.
 - README sections between `<!-- shared: ... -->` and `<!-- /shared -->` are identical in flomo-web-cli and flomo-web-mcp (both `README.md` and `README.en.md`). Change them in both repositories and update the fingerprints in `tests/readmeShared.test.ts`.
 - Prefer small pull requests with a clear problem statement and verification notes.
 
+## Dependency Security
+
+- `npm run verify` checks the code only. Dependency advisories are published continuously, so they are checked separately and never block unrelated changes.
+- `.github/workflows/audit.yml` runs `npm run audit:prod` and `npm run audit:all` when `package.json` or `package-lock.json` changes, and daily.
+- Dependabot opens pull requests for vulnerable dependencies (security updates) and grouped weekly version updates. Review and merge them instead of running `npm audit fix` by hand.
+- `prepublishOnly` runs `npm run audit:prod`, so a release cannot be published while a runtime dependency has a moderate or higher advisory.
+
 ## Package Boundary
 
 The GitHub repository contains source, tests, and maintenance files. The npm package is intentionally limited by `package.json#files` to runtime files and user-facing docs.

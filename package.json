@@ -38,7 +38,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "prepare": "npm run build",
-    "verify": "npm run typecheck && npm run typecheck:test && npm test && npm run build && npm run smoke && npm audit --audit-level=moderate"
+    "audit:prod": "npm audit --omit=dev --audit-level=moderate",
+    "audit:all": "npm audit --audit-level=moderate",
+    "prepublishOnly": "npm run audit:prod",
+    "verify": "npm run typecheck && npm run typecheck:test && npm test && npm run build && npm run smoke"
   },
   "engines": {
     "node": ">=20.19.0"
