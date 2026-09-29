@@ -47,9 +47,9 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "dotenv": "^16.4.7",
-    "zod": "^3.25.76"
+    "commander": "^15.0.0",
+    "dotenv": "^18.0.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",
