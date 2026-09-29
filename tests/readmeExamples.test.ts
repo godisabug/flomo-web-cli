@@ -29,11 +29,10 @@ describe("README", () => {
     expect(readme).toContain("flomo-web sync --page-size 200 --max-pages 50");
     expect(readme).toContain("Authorization");
     expect(readme).toContain("缓存");
+    expect(readme).toContain("npm install -g flomo-web-cli");
     expect(readme).toContain("当前源码/本地开发");
-    expect(readme).toContain("npm install");
     expect(readme).toContain("npm run build");
     expect(readme).toContain("npm link");
-    expect(readme).toContain("发布后");
     expect(readme).not.toContain(["Bearer", "real"].join(" "));
     expect(englishReadme).toContain("Current source/local development");
     expect(englishReadme).toContain("flomo-web random");
@@ -45,12 +44,10 @@ describe("README", () => {
     expect(englishReadme).toContain("if refresh fails and a valid local cache exists");
     expect(englishReadme).toContain("flomo-web sync --page-size 200 --max-pages 50");
 
-    const localInstallIndex = readme.indexOf("当前源码/本地开发");
-    const publicationIndex = readme.indexOf("发布后");
-    const globalInstallIndex = readme.indexOf("npm install -g flomo-web-cli");
+    const npmInstallIndex = readme.indexOf("npm install -g flomo-web-cli");
+    const sourceInstallIndex = readme.indexOf("当前源码/本地开发");
 
-    expect(localInstallIndex).toBeGreaterThan(-1);
-    expect(publicationIndex).toBeGreaterThan(localInstallIndex);
-    expect(globalInstallIndex).toBeGreaterThan(publicationIndex);
+    expect(npmInstallIndex).toBeGreaterThan(-1);
+    expect(sourceInstallIndex).toBeGreaterThan(npmInstallIndex);
   });
 });
