@@ -1,6 +1,7 @@
 import type { Memo, MemoFile } from "../models/memo.js";
 import { FlomoParseError } from "../errors.js";
 import { htmlToText, normalizeMemoText } from "../utils/text.js";
+import { parseDateTimeInTimeZone } from "../utils/time.js";
 import { extractInlineTags, normalizeTags } from "./tagParser.js";
 
 const HTML_SOURCE_KEYS = ["html", "content", "rich_text", "source_content"];
@@ -36,7 +37,7 @@ const MEDIA_SOURCE_KEYS = [
   "videos"
 ];
 
-export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
+export function parseMemo(raw: unknown, webBaseUrl: string, timezone = "Asia/Shanghai"): Memo {
   if (!isRecord(raw)) {
     throw new FlomoParseError("memo 数据不是对象。");
   }
@@ -53,8 +54,8 @@ export function parseMemo(raw: unknown, webBaseUrl: string): Memo {
   }
 
   const content = looksLikeHtml(contentSource) ? htmlToText(contentSource) : normalizeMemoText(contentSource);
-  const createdAt = normalizeDate(raw.created_at ?? raw.createdAt ?? raw.created_time ?? raw.created) ?? "";
-  const updatedAt = normalizeDate(raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified) ?? createdAt;
+  const createdAt = normalizeDate(raw.created_at ?? raw.createdAt ?? raw.created_time ?? raw.created, timezone) ?? "";
+  const updatedAt = normalizeDate(raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified, timezone) ?? createdAt;
   const apiTags = normalizeTags([raw.tags, raw.tag_list, raw.tag_names, raw.labels]);
   const inlineTags = extractInlineTags(content);
   const tags = normalizeTags([...apiTags, ...inlineTags]);
@@ -170,9 +171,9 @@ function normalizeMemoFile(value: unknown, sourceKey: string): MemoFile | undefi
   return Object.keys(file).length > 0 ? file : undefined;
 }
 
-function normalizeDate(value: unknown): string | undefined {
+function normalizeDate(value: unknown, timezone: string): string | undefined {
   if (typeof value === "string" && value.trim()) {
-    const parsed = Date.parse(value);
+    const parsed = parseDateTimeInTimeZone(value, timezone);
     return Number.isFinite(parsed) ? new Date(parsed).toISOString() : value;
   }
 

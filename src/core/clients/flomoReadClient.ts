@@ -3,6 +3,7 @@ import { FlomoRequestError } from "../errors.js";
 import type { Memo } from "../models/memo.js";
 import { parseMemo } from "../parsers/memoParser.js";
 import type { FlomoReadClient, MemoPageCursor, SyncNotesOptions, SyncNotesResult } from "../types/flomo.js";
+import { parseDateTimeInTimeZone } from "../utils/time.js";
 import { appendQueryString, buildFlomoWebQuery, getFlomoTz } from "./flomoWeb.js";
 import type { FlomoHttpClient } from "./http.js";
 
@@ -47,7 +48,7 @@ export class BearerFlomoReadClient implements FlomoReadClient {
     const endpoint = this.buildReadEndpoint(this.config.readEndpoint ?? DEFAULT_READ_ENDPOINT);
     const raw = await this.httpClient.requestJson<unknown>(endpoint);
     const rawItems = extractMemoArray(raw);
-    const items = rawItems.map((item) => parseMemo(item, this.config.webBaseUrl));
+    const items = rawItems.map((item) => parseMemo(item, this.config.webBaseUrl, this.config.timezone));
     this.cache = {
       expiresAt: Date.now() + CACHE_TTL_MS,
       items
@@ -116,9 +117,11 @@ export class BearerFlomoReadClient implements FlomoReadClient {
     const rawItems = extractMemoArray(raw);
 
     return {
-      items: rawItems.filter((item) => !isDeletedMemo(item)).map((item) => parseMemo(item, this.config.webBaseUrl)),
+      items: rawItems
+        .filter((item) => !isDeletedMemo(item))
+        .map((item) => parseMemo(item, this.config.webBaseUrl, this.config.timezone)),
       rawCount: rawItems.length,
-      nextCursor: extractNextCursor(rawItems)
+      nextCursor: extractNextCursor(rawItems, this.config.timezone)
     };
   }
 
@@ -221,14 +224,17 @@ function isDeletedMemo(raw: unknown): boolean {
   return deletedAt !== null && deletedAt !== undefined && String(deletedAt).trim() !== "";
 }
 
-function extractNextCursor(rawItems: unknown[]): MemoPageCursor | undefined {
+function extractNextCursor(rawItems: unknown[], timezone: string): MemoPageCursor | undefined {
   const raw = rawItems.at(-1);
   if (!isRecord(raw)) {
     return undefined;
   }
 
   const latestSlug = pickString(raw, ["slug", "memo_slug", "memo_id", "id"]);
-  const latestUpdatedAt = pickUnixSeconds(raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified);
+  const latestUpdatedAt = pickUnixSeconds(
+    raw.updated_at ?? raw.updatedAt ?? raw.updated_time ?? raw.modified_at ?? raw.modified,
+    timezone
+  );
   if (!latestSlug || latestUpdatedAt === undefined) {
     return undefined;
   }
@@ -254,7 +260,7 @@ function pickString(record: Record<string, unknown>, keys: string[]): string | u
   return undefined;
 }
 
-function pickUnixSeconds(value: unknown): number | undefined {
+function pickUnixSeconds(value: unknown, timezone: string): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value < 1_000_000_000_000 ? Math.trunc(value) : Math.trunc(value / 1000);
   }
@@ -262,10 +268,10 @@ function pickUnixSeconds(value: unknown): number | undefined {
   if (typeof value === "string" && value.trim()) {
     const numeric = Number(value);
     if (Number.isFinite(numeric)) {
-      return pickUnixSeconds(numeric);
+      return pickUnixSeconds(numeric, timezone);
     }
 
-    const parsed = Date.parse(value);
+    const parsed = parseDateTimeInTimeZone(value, timezone);
     if (Number.isFinite(parsed)) {
       return Math.trunc(parsed / 1000);
     }

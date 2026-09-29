@@ -37,7 +37,7 @@ export class BearerFlomoWriteClient implements FlomoWriteClient {
       body: JSON.stringify(payload)
     });
 
-    return parseMemo(extractCreatedMemo(raw), this.config.webBaseUrl);
+    return parseMemo(extractCreatedMemo(raw), this.config.webBaseUrl, this.config.timezone);
   }
 }
 

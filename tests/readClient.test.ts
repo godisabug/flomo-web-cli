@@ -79,6 +79,26 @@ describe("BearerFlomoReadClient", () => {
     expect(url.searchParams.get("sign")).toMatch(/^[a-f0-9]{32}$/);
   });
 
+  it("builds sync cursors from zoneless updated_at strings in the configured timezone", async () => {
+    const endpoints: string[] = [];
+    const httpClient = {
+      async requestJson(endpoint: string): Promise<unknown> {
+        endpoints.push(endpoint);
+        if (endpoints.length === 1) {
+          return { code: 0, data: [{ slug: "cursor-note", content: "Cursor", updated_at: "2026-05-03 12:00:00" }] };
+        }
+        return { code: 0, data: [] };
+      }
+    } as unknown as FlomoHttpClient;
+
+    const client = new BearerFlomoReadClient({ ...config, timezone: "America/New_York" }, httpClient);
+    await client.syncAll({ pageSize: 1, maxPages: 2 });
+
+    const query = new URL(`https://example.test${endpoints[1]}`).searchParams;
+    expect(query.get("latest_updated_at")).toBe(String(Date.UTC(2026, 4, 3, 16) / 1000));
+    expect(query.get("latest_slug")).toBe("cursor-note");
+  });
+
   it("lists recent memos from common response shape", async () => {
     const httpClient = {
       requestJson: async () => ({
