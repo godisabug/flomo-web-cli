@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## 0.2.1
+
+### Deprecated
+
+- Node.js 20 reached end-of-life in April 2026. 0.3.0 will require Node.js 22.12 or newer; interactive runs on older versions print an upgrade notice (scripts and `--json` output are unaffected).
+
+### Maintenance
+
+- Update commander to 14.0.3 (the newest major that supports Node.js 20), dotenv to 18, and zod to 4. `.env` is loaded quietly, since dotenv 17+ otherwise prints a status line to stderr. Memo Caches and user config written by 0.2.0 still load.
+- Run CI on Node.js 20.19, 22, and 24, and update GitHub Actions to `actions/checkout` and `actions/setup-node` v7.
+- Dependabot holds updates that require Node.js 22.12 (`vitest` 5, `commander` 15) until 0.3.0, and ignores `@types/node` and `actions/ai-inference` majors.
+
 ## 0.2.0
 
 - Interpret zoneless flomo date strings (`YYYY-MM-DD HH:mm:ss`) in the configured timezone instead of the host timezone, fixing shifted `createdAt`/`updatedAt` and sync cursors that could skip memos on hosts outside that timezone. Run `flomo-web sync` once to rewrite a Memo Cache created before this fix.
