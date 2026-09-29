@@ -2,11 +2,14 @@
 
 ## [Unreleased]
 
-- Check dependency advisories in a separate daily and on-change `Dependency audit` workflow instead of `npm run verify`, add Dependabot security and grouped version updates, and gate `npm publish` on `npm run audit:prod`.
-- Rework the README: npm install first with a quick start, a full environment variable table, and sections shared verbatim with flomo-web-mcp (guarded by a fingerprint test).
-- Refresh the development dependency lockfile to clear new moderate npm audit findings in `vitest` and `esbuild`.
-- Return a generic message for unexpected (`UNKNOWN`) errors from the shared core `toPublicError`, replacing the separate CLI and `random` fallbacks.
+## 0.2.0
+
 - Interpret zoneless flomo date strings (`YYYY-MM-DD HH:mm:ss`) in the configured timezone instead of the host timezone, fixing shifted `createdAt`/`updatedAt` and sync cursors that could skip memos on hosts outside that timezone. Run `flomo-web sync` once to rewrite a Memo Cache created before this fix.
+- Return a generic message for unexpected (`UNKNOWN`) errors from the shared core `toPublicError`, replacing the separate CLI and `random` fallbacks.
+- Align the shared flomo core with flomo-web-mcp 0.2.0.
+- Rework the README: npm install first with a quick start, a full environment variable table, and sections shared verbatim with flomo-web-mcp (guarded by a fingerprint test).
+- Check dependency advisories in a separate daily and on-change `Dependency audit` workflow instead of `npm run verify`, add Dependabot security and grouped version updates, and gate `npm publish` on `npm run audit:prod`.
+- Refresh the development dependency lockfile to clear new moderate npm audit findings in `vitest` and `esbuild`.
 
 ## 0.1.6
 
