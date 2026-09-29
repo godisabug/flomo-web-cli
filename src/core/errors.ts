@@ -62,6 +62,6 @@ export function toPublicError(error: unknown): { code: PublicErrorCode; message:
 
   return {
     code: "UNKNOWN",
-    message: error instanceof Error ? error.message : "未知错误。"
+    message: "未知错误。"
   };
 }

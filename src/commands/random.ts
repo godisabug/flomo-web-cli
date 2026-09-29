@@ -90,7 +90,7 @@ async function loadRandomMemoSource(context: CommandContext, noSync: boolean): P
   try {
     syncResult = await context.readClient.syncAll();
   } catch (error) {
-    const refreshError = toSafePublicError(error);
+    const refreshError = toPublicError(error);
     try {
       const cache = await readNoteCache(context.cachePath);
       return {
@@ -124,18 +124,6 @@ async function loadRandomMemoSource(context: CommandContext, noSync: boolean): P
     },
     stderr: ""
   };
-}
-
-function toSafePublicError(error: unknown): ReturnType<typeof toPublicError> {
-  const publicError = toPublicError(error);
-  if (publicError.code === "UNKNOWN") {
-    return {
-      code: "UNKNOWN",
-      message: "未知错误。"
-    };
-  }
-
-  return publicError;
 }
 
 function formatFallbackWarning(error: ReturnType<typeof toPublicError>, cache: NoteCache): string {
