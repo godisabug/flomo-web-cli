@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Interpret zoneless flomo date strings (`YYYY-MM-DD HH:mm:ss`) in the configured timezone instead of the host timezone, fixing shifted `createdAt`/`updatedAt` and sync cursors that could skip memos on hosts outside that timezone. Run `flomo-web sync` once to rewrite a Memo Cache created before this fix.
+
 ## 0.1.6
 
 - Write user configuration and the memo cache through atomic private-file replacement.
