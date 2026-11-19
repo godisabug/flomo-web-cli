@@ -9,5 +9,5 @@ export function isNodeVersionDeprecated(version: string = process.versions.node)
 
   const major = Number(match[1]);
   const minor = Number(match[2]);
-  return major < 22 || (major === 22 && minor < 12);
+  return major < 22 || minor < 12;
 }
